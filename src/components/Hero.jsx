@@ -59,18 +59,18 @@ export default function Hero({ onAddLink }) {
             link
           </span>
         </h1>
-        <p className="mt-4 text-lg text-slate-400">A noice URL shortener.</p>
+        <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">A noice URL shortener.</p>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           {session ? (
-            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-2">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-100 px-4 py-2 dark:border-white/10 dark:bg-white/5">
               {session.user.image && (
                 <img src={session.user.image} alt="" className="size-6 rounded-full" />
               )}
               <span className="text-sm font-medium">{session.user.name}</span>
               <button
                 onClick={() => authClient.signOut()}
-                className="rounded-lg px-2 py-1 text-xs text-slate-400 transition hover:bg-white/10 hover:text-slate-100"
+                className="rounded-lg px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-100"
               >
                 Sign out
               </button>
@@ -87,7 +87,7 @@ export default function Hero({ onAddLink }) {
           )}
           <a
             href="#create"
-            className="rounded-xl border border-white/10 bg-slate-800/80 px-5 py-2.5 font-semibold text-slate-200 transition hover:border-white/20 hover:bg-slate-700/80 active:scale-[0.98]"
+            className="rounded-xl border border-slate-200 bg-slate-100 px-5 py-2.5 font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-200 active:scale-[0.98] dark:border-white/10 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:border-white/20 dark:hover:bg-slate-700/80"
           >
             Create a link
           </a>
@@ -96,30 +96,30 @@ export default function Hero({ onAddLink }) {
         <form
           id="create"
           onSubmit={handleSubmit}
-          className="mt-14 w-full rounded-2xl border border-white/10 bg-slate-900/70 p-6 text-left shadow-2xl shadow-black/40 backdrop-blur"
+          className="mt-14 w-full rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-xl shadow-black/5 backdrop-blur dark:border-white/10 dark:bg-slate-900/70 dark:shadow-2xl dark:shadow-black/40"
         >
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Create a new link</h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Create a new link</h2>
 
           <div className="mt-4 space-y-3">
             <input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://your-long-url.com/..."
-              className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none transition placeholder:text-slate-500 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20"
+              className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Title (shown in Popular Links)"
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none transition placeholder:text-slate-500 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20"
+                className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
               <input
                 value={icon}
                 maxLength={4}
                 onChange={(e) => setIcon(e.target.value)}
                 placeholder="Emoji icon 🔗"
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none transition placeholder:text-slate-500 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20"
+                className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
             </div>
             <textarea
@@ -127,34 +127,34 @@ export default function Hero({ onAddLink }) {
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="Short description (optional)"
-              className="w-full resize-none rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-sm outline-none transition placeholder:text-slate-500 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20"
+              className="w-full resize-none rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-black/20 p-4 transition hover:border-sky-400/30">
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-sky-400/30 dark:border-white/10 dark:bg-black/20">
               <button
                 type="button"
                 role="switch"
                 aria-checked={publicListing}
                 onClick={() => setPublicListing(!publicListing)}
-                className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${publicListing ? 'bg-gradient-to-r from-sky-500 to-blue-600' : 'bg-slate-700'}`}
+                className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full transition ${publicListing ? 'bg-gradient-to-r from-sky-500 to-blue-600' : 'bg-slate-300 dark:bg-slate-700'}`}
               >
                 <span
                   className={`absolute top-0.5 size-5 rounded-full bg-white shadow transition-all ${publicListing ? 'left-[22px]' : 'left-0.5'}`}
                 />
               </button>
               <span>
-                <span className="block text-sm font-medium text-slate-200">List this link publicly</span>
+                <span className="block text-sm font-medium text-slate-700 dark:text-slate-200">List this link publicly</span>
                 <span className="block text-xs text-slate-500">
                   Show it in the Popular Links section below so everyone can discover it.
                 </span>
               </span>
             </label>
 
-            {error && <p className="text-sm text-rose-400">{error}</p>}
+            {error && <p className="text-sm text-rose-500 dark:text-rose-400">{error}</p>}
             {created && (
-              <p className="text-sm text-emerald-400">
+              <p className="text-sm text-emerald-600 dark:text-emerald-400">
                 Created! Your short link:{' '}
-                <span className="font-mono font-semibold text-sky-300">{created}</span>
+                <span className="font-mono font-semibold text-sky-600 dark:text-sky-300">{created}</span>
               </p>
             )}
 
