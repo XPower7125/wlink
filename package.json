@@ -1,0 +1,28 @@
+{
+  "name": "wlink",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n server,vite \"node server/index.js\" \"vite\"",
+    "dev:client": "vite",
+    "dev:server": "node server/index.js",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "better-auth": "^1.7.1",
+    "better-sqlite3": "^12.11.1",
+    "concurrently": "^10.0.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "@vitejs/plugin-react": "^4.6.0",
+    "tailwindcss": "^4.1.11",
+    "vite": "^7.0.4"
+  }
+}

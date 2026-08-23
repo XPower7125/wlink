@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-[#0a0e17] text-slate-200 antialiased;
+}
+
+::selection {
+  @apply bg-sky-500/40 text-white;
+}
