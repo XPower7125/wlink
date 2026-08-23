@@ -2,18 +2,23 @@ import Header from './components/Header'
 import Hero from './components/Hero'
 import PopularLinks from './components/PopularLinks'
 import AllLinks from './components/AllLinks'
+import MyLinks from './components/MyLinks'
 import Redirector from './components/Redirector'
 
 export default function App() {
   const path =
     typeof window !== 'undefined' ? window.location.pathname : '/'
 
-  if (path === '/all') {
+  const appPage =
+    path === '/all' ? AllLinks : path === '/my' ? MyLinks : null
+
+  if (appPage) {
+    const Page = appPage
     return (
       <div className="min-h-dvh">
         <Header />
         <main>
-          <AllLinks />
+          <Page />
         </main>
         <footer className="border-t border-slate-200 py-8 text-center text-sm text-slate-500 dark:border-white/5 dark:text-slate-400">
           Built with React + TailwindCSS · wlink © 2026

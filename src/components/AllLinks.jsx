@@ -1,4 +1,5 @@
-import { useQuery } from "convex/react";
+import { useEffect, useState } from "react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
 function formatClicks(n) {
@@ -9,6 +10,28 @@ function formatClicks(n) {
 
 export default function AllLinks() {
   const links = useQuery(api.links.listAllPublic) ?? []
+  const checkMod = useAction(api.links.amModerator)
+  const deleteAny = useAction(api.links.moderatorDelete)
+  const [isMod, setIsMod] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    checkMod()
+      .then((v) => alive && setIsMod(v))
+      .catch(() => {})
+    return () => { alive = false }
+  }, [checkMod])
+
+  const handleModDelete = async (id) => {
+    if (!window.confirm('Delete this link?')) return
+    try {
+      await deleteAny({ id })
+      setError('')
+    } catch (err) {
+      setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not delete link.')
+    }
+  }
 
   const safeHrefs = (url) => {
     try {
@@ -41,7 +64,7 @@ export default function AllLinks() {
             {links.map((link) => {
               const href = safeHrefs(link.url)
               if (!href) return null
-              return (
+              const card = (
               <a
                 key={link._id}
                 href={href}
@@ -69,9 +92,23 @@ export default function AllLinks() {
                 </div>
               </a>
               )
+              if (!isMod) return card
+              return (
+                <div key={link._id} className="relative">
+                  <button
+                    onClick={() => handleModDelete(link._id)}
+                    title="Delete link (moderator)"
+                    className="absolute -right-2 -top-2 z-10 grid size-7 place-items-center rounded-full bg-rose-500 text-xs font-bold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600"
+                  >
+                    ✕
+                  </button>
+                  {card}
+                </div>
+              )
             })}
           </div>
         )}
+        {error && <p className="mt-4 text-sm text-rose-500 dark:text-rose-400">{error}</p>}
       </div>
     </section>
   )

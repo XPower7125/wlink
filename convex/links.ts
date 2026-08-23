@@ -1,5 +1,12 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
+import {
+  action,
+  internalQuery,
+  mutation,
+  query,
+  internalMutation,
+} from "./_generated/server";
+import { components } from "./_generated/api";
 import { authComponent } from "./auth";
 
 const SLUG_RE = /^[a-z0-9-]{1,40}$/;
@@ -17,6 +24,11 @@ const MAX_LEN = {
 
 const RATE_LIMIT_PER_HOUR = 10;
 
+// ── moderator config ─────────────────────────────────────────────────────
+// Members of this Discord guild holding this role may delete any link.
+const MOD_GUILD_ID = "1541152238494552087";
+const MOD_ROLE_ID = "1541154100576788580";
+
 // Reserved slugs so short links can't shadow app routes/assets.
 const RESERVED = new Set([
   "api",
@@ -33,6 +45,7 @@ const RESERVED = new Set([
   "logout",
   "create",
   "all",
+  "my",
   "admin",
   "public",
   "static",
@@ -248,5 +261,205 @@ export const listAllPublic = query({
       .filter((l) => l.public && !l.passwordHash)
       .sort((a, b) => b.clicks - a.clicks)
       .map(({ passwordHash, ...safe }) => safe);
+  },
+});
+
+export const listMine = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) return [];
+    const links = await ctx.db
+      .query("links")
+      .withIndex("by_owner", (q) => q.eq("ownerId", user.id))
+      .collect();
+    return links
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .map(({ passwordHash, ...safe }) => ({
+        ...safe,
+        requiresPassword: Boolean(passwordHash),
+      }));
+  },
+});
+
+// Shared field validation for create/update so edits can't bypass the
+// same limits creation enforces.
+async function validateFields(args) {
+  const url = String(args.url || "").trim();
+  if (!url) fail("URL is required.");
+  if (url.length > MAX_LEN.url) fail("URL is too long.");
+  if (!HTTP_URL_RE.test(url)) fail("Only http(s) URLs are supported.");
+
+  let title = String(args.title || "").trim();
+  if (!title) {
+    title = url.replace(/^https?:\/\//i, "").split("/")[0] || url;
+  }
+  if (title.length > MAX_LEN.title) fail("Title is too long.");
+  if (CTRL_RE.test(title)) fail("Title contains invalid characters.");
+
+  const description =
+    String(args.description || "").trim() || "No description provided.";
+  if (description.length > MAX_LEN.description) {
+    fail("Description is too long.");
+  }
+  if (CTRL_RE.test(description)) {
+    fail("Description contains invalid characters.");
+  }
+
+  const icon = String(args.icon || "").trim() || "\u{1F517}";
+  if ([...icon].length > 4) fail("Icon must be at most 4 characters.");
+  if (CTRL_RE.test(icon)) fail("Icon contains invalid characters.");
+
+  const color = args.color ? String(args.color).trim() : undefined;
+  if (color !== undefined && !HEX_COLOR_RE.test(color)) {
+    fail("Color must be a hex value like #38bdf8.");
+  }
+
+  const image = args.image ? String(args.image).trim() : undefined;
+  if (image !== undefined && image.length > MAX_LEN.image) {
+    fail("Image URL is too long.");
+  }
+  if (image !== undefined && !HTTP_URL_RE.test(image)) {
+    fail("Image must be an http(s) URL.");
+  }
+
+  return { url, title, description, icon, color, image };
+}
+
+export const updateLink = mutation({
+  args: {
+    id: v.id("links"),
+    url: v.string(),
+    title: v.string(),
+    description: v.string(),
+    icon: v.string(),
+    // Required on update so an empty string explicitly clears the field.
+    color: v.string(),
+    image: v.string(),
+    // undefined = keep current password, "" = remove it, non-empty = set it
+    password: v.optional(v.string()),
+    public: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) fail("You must be signed in to edit links.");
+
+    const link = await ctx.db.get(args.id);
+    if (!link) fail("Link not found.");
+    if (link.ownerId !== user.id) {
+      fail("You can only edit your own links.");
+    }
+
+    const fields = await validateFields(args);
+
+    let passwordHash = link.passwordHash;
+    const password = args.password;
+    if (password !== undefined) {
+      const trimmed = password.trim();
+      if (trimmed === "") {
+        passwordHash = undefined;
+      } else {
+        if (trimmed.length > 200) fail("Password is too long.");
+        passwordHash = await sha256Hex(trimmed);
+      }
+    }
+
+    await ctx.db.patch(args.id, {
+      ...fields,
+      passwordHash,
+      public: Boolean(args.public),
+    });
+  },
+});
+
+export const removeLink = mutation({
+  args: { id: v.id("links") },
+  handler: async (ctx, { id }) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) fail("You must be signed in to delete links.");
+
+    const link = await ctx.db.get(id);
+    if (!link) return;
+    if (link.ownerId !== user.id) {
+      fail("You can only delete your own links.");
+    }
+
+    await ctx.db.delete(id);
+  },
+});
+
+// ── moderator support ────────────────────────────────────────────────────
+
+// Look up the caller's Discord account id from the better-auth account table.
+async function getDiscordAccountId(ctx, authUserId: string): Promise<string | null> {
+  const account = await ctx.runQuery(components.betterAuth.adapter.findOne, {
+    model: "account",
+    where: [
+      { field: "userId", operator: "eq", value: authUserId },
+      { field: "providerId", operator: "eq", value: "discord" },
+    ],
+  });
+  return account?.accountId ?? null;
+}
+
+// True if the user holds the moderator role in the configured Discord guild.
+// Requires DISCORD_BOT_TOKEN (bot must be a member of MOD_GUILD_ID).
+async function hasModRole(ctx, authUserId: string): Promise<boolean> {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  if (!token) return false;
+  try {
+    const discordId = await getDiscordAccountId(ctx, authUserId);
+    if (!discordId) return false;
+    const r = await fetch(
+      `https://discord.com/api/v10/guilds/${MOD_GUILD_ID}/members/${discordId}`,
+      { headers: { Authorization: `Bot ${token}` }, cache: "no-store" },
+    );
+    if (!r.ok) return false; // 404 → not in guild; 401/403 → bad token
+    const member = await r.json();
+    return Array.isArray(member?.roles) && member.roles.includes(MOD_ROLE_ID);
+  } catch {
+    return false;
+  }
+}
+
+export const amModerator = action({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) return false;
+    return hasModRole(ctx, user.id);
+  },
+});
+
+export const getLinkById = internalQuery({
+  args: { id: v.id("links") },
+  handler: async (ctx, { id }) => ctx.db.get(id),
+});
+
+export const removeLinkInternal = internalMutation({
+  args: { id: v.id("links") },
+  handler: async (ctx, { id }) => {
+    await ctx.db.delete(id);
+  },
+});
+
+// Delete as owner OR as Discord moderator. Actions run outside transactions,
+// so the ownership/permission check happens here and the delete itself is an
+// internal mutation.
+export const moderatorDelete = action({
+  args: { id: v.id("links") },
+  handler: async (ctx, { id }) => {
+    const link = await ctx.runQuery(internal.links.getLinkById, { id });
+    if (!link) return;
+
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) fail("You must be signed in to delete links.");
+
+    if (link.ownerId !== user.id) {
+      const isMod = await hasModRole(ctx, user.id);
+      if (!isMod) fail("You can only delete your own links.");
+    }
+
+    await ctx.runMutation(internal.links.removeLinkInternal, { id });
   },
 });
