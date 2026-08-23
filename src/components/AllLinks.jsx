@@ -7,10 +7,9 @@ function formatClicks(n) {
   return `${n} clicks`
 }
 
-export default function PopularLinks() {
-  const links = useQuery(api.links.listPublic) ?? []
+export default function AllLinks() {
+  const links = useQuery(api.links.listAllPublic) ?? []
 
-  // F1c companion: never render hrefs with attacker-chosen schemes.
   const safeHrefs = (url) => {
     try {
       const u = new URL(url)
@@ -25,22 +24,21 @@ export default function PopularLinks() {
       <div className="mx-auto max-w-6xl px-4 py-16">
         <div className="flex items-end justify-between">
           <h2 className="text-2xl font-bold tracking-tight">
-            Popular{' '}
+            All{' '}
             <span className="bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent">Links</span>
           </h2>
-          <a href="/all" className="text-sm text-slate-500 transition hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-300">
-            View all →
+          <a href="/" className="text-sm text-slate-500 transition hover:text-sky-600 dark:text-slate-400 dark:hover:text-sky-300">
+            ← Back home
           </a>
         </div>
 
         {links.length === 0 ? (
           <p className="mt-8 text-sm text-slate-500 dark:text-slate-400">
-            No public links yet. Create one above to get started.
+            No public links yet.
           </p>
         ) : (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {links.map((link) => {
-              // F1c companion: skip entries with unsafe destination schemes.
               const href = safeHrefs(link.url)
               if (!href) return null
               return (

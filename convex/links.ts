@@ -32,6 +32,7 @@ const RESERVED = new Set([
   "login",
   "logout",
   "create",
+  "all",
   "admin",
   "public",
   "static",
@@ -212,6 +213,21 @@ export const incrementClicks = internalMutation({
   },
 });
 
+// Public click recording: called by the client right before it navigates to
+// the destination. Anyone can inflate this in principle, but it's the only
+// viable signal since redirects happen browser-side (bots never run the SPA).
+export const recordClick = mutation({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    const link = await ctx.db
+      .query("links")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .unique();
+    if (!link) return;
+    await ctx.db.patch(link._id, { clicks: link.clicks + 1 });
+  },
+});
+
 export const listPublic = query({
   args: {},
   handler: async (ctx) => {
@@ -220,6 +236,17 @@ export const listPublic = query({
       .filter((l) => l.public && !l.passwordHash)
       .sort((a, b) => b.clicks - a.clicks)
       .slice(0, 6)
+      .map(({ passwordHash, ...safe }) => safe);
+  },
+});
+
+export const listAllPublic = query({
+  args: {},
+  handler: async (ctx) => {
+    const links = await ctx.db.query("links").collect();
+    return links
+      .filter((l) => l.public && !l.passwordHash)
+      .sort((a, b) => b.clicks - a.clicks)
       .map(({ passwordHash, ...safe }) => safe);
   },
 });
