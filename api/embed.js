@@ -9,6 +9,52 @@ const escapeHtml = (s) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+// ── FIX V7: baseline hardening headers on every response we render.
+// The embed page is bot-facing HTML built from user input; a restrictive
+// default-src plus nosniff bounds the blast radius of any future escaping
+// bug (and would have blunted the javascript:-URI redirect, see report V6).
+function hardenedHeaders(res) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'none'; img-src https: data:; style-src 'unsafe-inline'"
+  );
+}
+
+// ── FIX V2 ─────────────────────────────────────────────────────────────
+// Never build absolute URLs from the client-supplied Host header. An
+// attacker who can set Host (direct-to-origin requests, cache poisoning,
+// hostile proxies) could otherwise make wlink render *its* URLs inside
+// wlink's trusted embed pages. Origins are pinned via environment config;
+// anything unrecognised is answered with the canonical origin anyway.
+const DEFAULT_ORIGIN = "https://wlink.vercel.app";
+
+function configuredOrigins() {
+  return (process.env.EMBED_ORIGINS || process.env.SITE_URL || "")
+    .split(",")
+    .map((s) => s.trim().replace(/\/+$/, ""))
+    .filter(Boolean)
+    .map((s) => {
+      // Accept both bare origins and full URLs.
+      if (!/^https?:\/\//i.test(s)) s = `https://${s}`;
+      return s.replace(/\/+$/, "");
+    });
+}
+
+function resolveOrigin(hostHeader) {
+  const allowed = configuredOrigins();
+  if (allowed.length === 0) return DEFAULT_ORIGIN;
+  const host = String(hostHeader || "").toLowerCase();
+  for (const origin of allowed) {
+    try {
+      if (new URL(origin).host === host) return origin;
+    } catch {}
+  }
+  // Unknown/poisoned Host → canonical origin wins, always.
+  return allowed[0];
+}
+
 async function fetchLink(slug) {
   const base = process.env.VITE_CONVEX_URL;
   if (!base) return null;
@@ -35,11 +81,13 @@ export default async function handler(req, res) {
     return proxyIndex(req, res);
   }
 
-  const siteOrigin = `https://${req.headers.host || "wlink.vercel.app"}`;
+  // FIX V2: origin resolved from pinned config, never from req Host alone.
+  const siteOrigin = resolveOrigin(req.headers.host);
   const shortUrl = `${siteOrigin}/${slug}`;
   const link = await fetchLink(slug);
 
   if (!link) {
+    hardenedHeaders(res);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     return res.status(404).send(
       `<!doctype html><html><body><p>Link not found. <a href="${escapeHtml(shortUrl)}">${escapeHtml(shortUrl)}</a></p></body></html>`
@@ -76,6 +124,7 @@ export default async function handler(req, res) {
     .filter(Boolean)
     .join("\n    ");
 
+  hardenedHeaders(res);
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
   res.status(200).send(
@@ -95,10 +144,12 @@ export default async function handler(req, res) {
 }
 
 async function proxyIndex(req, res) {
-  const origin = `https://${req.headers.host}`;
+  // FIX V2: serve the SPA shell from the pinned origin, not the raw Host header.
+  const origin = resolveOrigin(req.headers.host);
   try {
     const r = await fetch(`${origin}/index.html`, { cache: "no-store" });
     const html = await r.text();
+    hardenedHeaders(res);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     return res.status(200).send(html);
