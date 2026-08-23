@@ -2,13 +2,6 @@
   "rewrites": [
     {
       "source": "/:slug([A-Za-z0-9-]+)",
-      "has": [
-        {
-          "type": "header",
-          "key": "user-agent",
-          "value": "([Dd]iscord[Bb]ot|[Tt]witter[Bb]ot|[Tt]elegram[Bb]ot|[Ss]lack[Bb]ot|facebookexternalhit|[Ll]inkedin[Bb]ot|[Ww]hats[Aa]pp|embedly|[Qq]uora [Ll]ink [Pp]review|vkShare)"
-        }
-      ],
       "destination": "/api/embed"
     },
     {
