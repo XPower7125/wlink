@@ -3,3 +3,7 @@ dist/
 .env
 *.db
 *.db-journal
+
+.vercel
+.env.local
+convex/_generated

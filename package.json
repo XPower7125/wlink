@@ -4,18 +4,17 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n server,vite \"node server/index.js\" \"vite\"",
+    "dev": "concurrently -k -n convex,vite \"npx convex dev\" \"vite\"",
     "dev:client": "vite",
-    "dev:server": "node server/index.js",
+    "dev:convex": "npx convex dev",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "better-auth": "^1.7.1",
-    "better-sqlite3": "^12.11.1",
+    "@convex-dev/better-auth": "^0.12.5",
+    "better-auth": "~1.6.15",
     "concurrently": "^10.0.5",
-    "dotenv": "^17.4.2",
-    "express": "^4.22.2",
+    "convex": "^1.30.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

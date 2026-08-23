@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { authClient } from '../lib/auth-client'
+import { signInDiscord } from '../lib/auth-client'
 
 const NAV = ['Twitter', 'Discord', 'About us', 'Documentation']
 
@@ -51,7 +51,7 @@ export default function Header() {
           </div>
         ) : (
           <button
-            onClick={() => authClient.signIn.social({ provider: 'discord', callbackURL: '/' })}
+            onClick={signInDiscord}
             className="group flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium transition hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-sky-300"
           >
             Sign in
