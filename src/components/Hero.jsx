@@ -21,6 +21,7 @@ export default function Hero() {
   const [icon, setIcon] = useState('🔗')
   const [color, setColor] = useState('#38bdf8')
   const [image, setImage] = useState('')
+  const [password, setPassword] = useState('')
   const [customAlias, setCustomAlias] = useState('')
   const [publicListing, setPublicListing] = useState(false)
   const [created, setCreated] = useState(null)
@@ -53,6 +54,7 @@ export default function Hero() {
       icon: icon.trim() || '🔗',
       color,
       image: embedImage,
+      password: password.trim() || undefined,
       public: publicListing,
     }
     try {
@@ -69,6 +71,7 @@ export default function Hero() {
     setPublicListing(false)
     setColor('#38bdf8')
     setImage('')
+    setPassword('')
   }
 
   return (
@@ -179,6 +182,14 @@ export default function Hero() {
             <p className="text-xs text-slate-400 dark:text-slate-500">
               The color stripe and preview shown when your link is shared on Discord.
             </p>
+
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password protect this link (optional)"
+              className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
+            />
 
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-sky-400/30 dark:border-white/10 dark:bg-black/20">
               <button

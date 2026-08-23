@@ -1,21 +1,88 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
 export default function Redirector({ slug }) {
   const link = useQuery(api.links.getBySlug, { slug });
+  const [password, setPassword] = useState("");
+  const [attempt, setAttempt] = useState(null);
+  const unlocked = useQuery(
+    api.links.unlock,
+    attempt ? { slug, password: attempt } : { slug, password: "" },
+  );
 
   useEffect(() => {
-    if (link) {
+    if (link && !link.requiresPassword && link.url) {
       window.location.replace(link.url);
     }
   }, [link]);
 
+  useEffect(() => {
+    if (unlocked?.url) {
+      window.location.replace(unlocked.url);
+    }
+  }, [unlocked]);
+
+  if (link === undefined) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <p className="text-slate-500 dark:text-slate-400">Redirecting…</p>
+      </div>
+    );
+  }
+
+  if (link === null) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <p className="text-slate-500 dark:text-slate-400">Link not found.</p>
+      </div>
+    );
+  }
+
+  if (link.requiresPassword) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center px-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setAttempt(password);
+          }}
+          className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-black/5 dark:border-white/10 dark:bg-slate-900/70 dark:shadow-2xl dark:shadow-black/40"
+        >
+          <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+            🔒 Password required
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            This link is protected. Enter the password to continue.
+          </p>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            autoFocus
+            className="mt-4 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
+          />
+          <button
+            type="submit"
+            className="mt-3 w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 font-semibold text-white shadow-lg shadow-sky-500/30 transition hover:brightness-110 active:scale-[0.99]"
+          >
+            Unlock →
+          </button>
+          {attempt !== null && unlocked === undefined && (
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Checking…</p>
+          )}
+          {attempt !== null && unlocked?.url === null && (
+            <p className="mt-3 text-sm text-rose-500 dark:text-rose-400">Incorrect password.</p>
+          )}
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-dvh items-center justify-center">
-      <p className="text-slate-500 dark:text-slate-400">
-        {link === null ? "Link not found." : "Redirecting…"}
-      </p>
+      <p className="text-slate-500 dark:text-slate-400">Redirecting…</p>
     </div>
   );
 }

@@ -10,6 +10,7 @@ export default defineSchema({
     icon: v.string(),
     color: v.optional(v.string()),
     image: v.optional(v.string()),
+    passwordHash: v.optional(v.string()),
     clicks: v.number(),
     public: v.boolean(),
   }).index("by_slug", ["slug"]),
