@@ -21,7 +21,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-xl dark:border-white/5 dark:bg-[#0a0e17]/80">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-        <a href="#" className="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+        <a href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900 dark:text-white">
           <img
             src="/wlink.png"
             alt=""

@@ -412,7 +412,11 @@ async function hasModRole(ctx, authUserId: string): Promise<boolean> {
     if (!discordId) return false;
     const r = await fetch(
       `https://discord.com/api/v10/guilds/${MOD_GUILD_ID}/members/${discordId}`,
-      { headers: { Authorization: `Bot ${token}` }, cache: "no-store" },
+      {
+        headers: { Authorization: `Bot ${token}` },
+        cache: "no-store",
+        signal: AbortSignal.timeout(8000),
+      },
     );
     if (!r.ok) return false; // 404 → not in guild; 401/403 → bad token
     const member = await r.json();

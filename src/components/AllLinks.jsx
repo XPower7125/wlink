@@ -13,6 +13,7 @@ export default function AllLinks() {
   const checkMod = useAction(api.links.amModerator)
   const deleteAny = useAction(api.links.moderatorDelete)
   const [isMod, setIsMod] = useState(false)
+  const [adminConfirmId, setAdminConfirmId] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -64,46 +65,63 @@ export default function AllLinks() {
             {links.map((link) => {
               const href = safeHrefs(link.url)
               if (!href) return null
-              const card = (
-              <a
-                key={link._id}
-                href={href}
-                target="_blank"
-                rel="noreferrer noopener"
-                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-500/10 dark:border-white/10 dark:bg-slate-900/60 dark:hover:shadow-xl dark:hover:shadow-sky-500/10"
-              >
-                <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.12),transparent_70%)] opacity-0 transition group-hover:opacity-100" />
-                <div className="flex items-start gap-4">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/20 to-blue-600/20 text-xl ring-1 ring-slate-200 dark:ring-white/10">
-                    {link.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="truncate font-semibold text-slate-900 dark:text-slate-100">{link.title}</h3>
-                    <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{link.description}</p>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
-                    {formatClicks(link.clicks)}
-                  </span>
-                  <span className="font-mono text-xs text-slate-400 transition group-hover:text-sky-600 dark:text-slate-500 dark:group-hover:text-sky-300">
-                    /{link.slug}
-                  </span>
-                </div>
-              </a>
-              )
-              if (!isMod) return card
               return (
-                <div key={link._id} className="relative">
-                  <button
-                    onClick={() => handleModDelete(link._id)}
-                    title="Delete link (moderator)"
-                    className="absolute -right-2 -top-2 z-10 grid size-7 place-items-center rounded-full bg-rose-500 text-xs font-bold text-white shadow-lg shadow-rose-500/30 transition hover:bg-rose-600"
-                  >
-                    ✕
-                  </button>
-                  {card}
-                </div>
+              <div
+                key={link._id}
+                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-500/10 dark:border-white/10 dark:bg-slate-900/60 dark:hover:shadow-xl dark:hover:shadow-sky-500/10"
+              >
+                {isMod && (
+                  adminConfirmId === link._id ? (
+                    <div className="absolute right-2 top-2 z-20 flex items-center gap-1">
+                      <button
+                        onClick={() => handleModDelete(link._id)}
+                        className="rounded-lg bg-rose-500 px-2 py-0.5 text-xs font-semibold text-white shadow transition hover:bg-rose-600"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        onClick={() => setAdminConfirmId(null)}
+                        className="rounded-lg border border-slate-200 bg-white px-1.5 py-0.5 text-xs text-slate-600 shadow dark:border-white/10 dark:bg-slate-800 dark:text-slate-300"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAdminConfirmId(link._id)}
+                      title="Delete link (moderator)"
+                      className="absolute right-2 top-2 z-20 grid size-6 place-items-center rounded-full bg-rose-500/90 text-xs font-bold text-white opacity-0 shadow transition hover:bg-rose-600 group-hover:opacity-100"
+                    >
+                      ✕
+                    </button>
+                  )
+                )}
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="block p-5"
+                >
+                  <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.12),transparent_70%)] opacity-0 transition group-hover:opacity-100" />
+                  <div className="flex items-start gap-4">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/20 to-blue-600/20 text-xl ring-1 ring-slate-200 dark:ring-white/10">
+                      {link.icon}
+                    </span>
+                    <div className="min-w-0">
+                      <h3 className="truncate pr-7 font-semibold text-slate-900 dark:text-slate-100">{link.title}</h3>
+                      <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{link.description}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between">
+                    <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                      {formatClicks(link.clicks)}
+                    </span>
+                    <span className="font-mono text-xs text-slate-400 transition group-hover:text-sky-600 dark:text-slate-500 dark:group-hover:text-sky-300">
+                      /{link.slug}
+                    </span>
+                  </div>
+                </a>
+              </div>
               )
             })}
           </div>

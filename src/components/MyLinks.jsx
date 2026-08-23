@@ -149,6 +149,7 @@ export default function MyLinks() {
   const [adminConfirmId, setAdminConfirmId] = useState(null)
   const [isMod, setIsMod] = useState(false)
   const [allLinks, setAllLinks] = useState(null)
+  const [adminError, setAdminError] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -159,10 +160,20 @@ export default function MyLinks() {
         if (!alive || !v) return
         setIsMod(true)
         return loadAll()
-          .then((r) => alive && setAllLinks(r))
-          .catch(() => {})
+          .then((r) => {
+            if (alive) setAllLinks(r)
+          })
+          .catch((err) => {
+            if (alive) {
+              setAdminError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not load all links.')
+            }
+          })
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (alive) {
+          setAdminError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not verify moderator status.')
+        }
+      })
     return () => { alive = false }
   }, [session, checkMod, loadAll])
 
@@ -289,7 +300,9 @@ export default function MyLinks() {
               <span className="bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent">all links</span>
             </h3>
             {!allLinks ? (
-              <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+              <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">
+                {adminError || 'Loading…'}
+              </p>
             ) : allLinks.length === 0 ? (
               <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">No links exist yet.</p>
             ) : (
