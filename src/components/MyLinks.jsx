@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAction, useMutation, useQuery } from 'convex/react'
+
 import { api } from '../../convex/_generated/api'
 import { normalizeUrl } from '../lib/store'
 import { authClient, signInDiscord } from '../lib/auth-client'
@@ -141,7 +142,7 @@ function EditForm({ link, onDone }) {
 export default function MyLinks() {
   const { data: session, isPending } = authClient.useSession()
   const links = useQuery(api.links.listMine, session ? {} : 'skip') ?? []
-  const removeLink = useAction(api.links.moderatorDelete)
+  const removeLink = useMutation(api.links.removeLink)
   const checkMod = useAction(api.links.amModerator)
   const loadAll = useAction(api.links.listAllAsModerator)
   const [editingId, setEditingId] = useState(null)

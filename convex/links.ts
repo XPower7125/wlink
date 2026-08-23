@@ -477,17 +477,28 @@ export const removeLinkInternal = internalMutation({
 export const moderatorDelete = action({
   args: { id: v.id("links") },
   handler: async (ctx, { id }) => {
-    const link = await ctx.runQuery(internal.links.getLinkById, { id });
-    if (!link) return;
+    try {
+      const link = await ctx.runQuery(internal.links.getLinkById, { id });
+      if (!link) return;
 
-    const user = await authComponent.safeGetAuthUser(ctx);
-    if (!user) fail("You must be signed in to delete links.");
+      const user = await authComponent.safeGetAuthUser(ctx);
+      if (!user) fail("You must be signed in to delete links.");
 
-    if (link.ownerId !== user._id) {
-      const isMod = await hasModRole(ctx, user._id);
-      if (!isMod) fail("You can only delete your own links.");
+      if (link.ownerId !== user._id) {
+        const isMod = await hasModRole(ctx, user._id);
+        if (!isMod) fail("You can only delete your own links.");
+      }
+
+      await ctx.runMutation(internal.links.removeLinkInternal, { id });
+    } catch (err) {
+      // Surface the real cause in deployment logs instead of a bare
+      // "Server Error" reaching the client.
+      console.error("moderatorDelete failed", {
+        id,
+        message: err?.message,
+        stack: err?.stack,
+      });
+      throw err;
     }
-
-    await ctx.runMutation(internal.links.removeLinkInternal, { id });
   },
 });
