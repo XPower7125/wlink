@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { signInDiscord } from '../lib/auth-client'
+import { authClient, signInDiscord } from '../lib/auth-client'
 
 const NAV = ['Twitter', 'Discord', 'About us', 'Documentation']
 
