@@ -19,6 +19,8 @@ export default function Hero() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [icon, setIcon] = useState('🔗')
+  const [color, setColor] = useState('#38bdf8')
+  const [image, setImage] = useState('')
   const [customAlias, setCustomAlias] = useState('')
   const [publicListing, setPublicListing] = useState(false)
   const [created, setCreated] = useState(null)
@@ -37,12 +39,20 @@ export default function Hero() {
       return setError('Custom alias can only contain letters, numbers and hyphens (max 40).')
     }
     const slug = custom || randomSlug()
+    let embedImage
+    try {
+      if (image.trim()) embedImage = new URL(normalizeUrl(image.trim())).href
+    } catch {
+      return setError('Embed image must be a valid URL.')
+    }
     const link = {
       slug,
       url: normalizeUrl(url),
       title: title.trim() || normalizeUrl(url).replace(/^https?:\/\//, '').split('/')[0],
       description: description.trim() || 'No description provided.',
       icon: icon.trim() || '🔗',
+      color,
+      image: embedImage,
       public: publicListing,
     }
     try {
@@ -57,6 +67,8 @@ export default function Hero() {
     setDescription('')
     setCustomAlias('')
     setPublicListing(false)
+    setColor('#38bdf8')
+    setImage('')
   }
 
   return (
@@ -146,6 +158,27 @@ export default function Hero() {
               placeholder="Short description (optional)"
               className="w-full resize-none rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 transition hover:border-sky-400/30 dark:border-white/10 dark:bg-black/30 dark:text-slate-100">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="size-7 cursor-pointer rounded-lg border-none bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0"
+                />
+                Embed color
+              </label>
+              <input
+                value={image}
+                onChange={(e) => setImage(e.target.value)}
+                placeholder="Embed image URL (optional)"
+                className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
+              />
+            </div>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              The color stripe and preview shown when your link is shared on Discord.
+            </p>
 
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-sky-400/30 dark:border-white/10 dark:bg-black/20">
               <button

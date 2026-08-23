@@ -8,6 +8,8 @@ export const createLink = mutation({
     title: v.string(),
     description: v.string(),
     icon: v.string(),
+    color: v.optional(v.string()),
+    image: v.optional(v.string()),
     public: v.boolean(),
   },
   handler: async (ctx, args) => {
@@ -18,7 +20,13 @@ export const createLink = mutation({
     if (existing) {
       throw new Error("That alias is already taken. Please choose another.");
     }
-    await ctx.db.insert("links", { ...args, clicks: 0 });
+    const { color, image, ...rest } = args;
+    await ctx.db.insert("links", {
+      ...rest,
+      color: color?.trim() || undefined,
+      image: image?.trim() || undefined,
+      clicks: 0,
+    });
   },
 });
 
