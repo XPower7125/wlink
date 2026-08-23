@@ -2,6 +2,12 @@
 <html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <!-- V7 fix: baseline CSP. connect-src must allow the Convex deployment
+         (WSS + HTTPS) since the API lives on a separate origin. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'self' wss://*.convex.cloud https://*.convex.cloud https://*.convex.site wss://*.convex.site; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'"
+    />
     <link rel="icon" type="image/png" href="/wlink.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>

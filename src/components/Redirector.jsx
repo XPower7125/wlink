@@ -2,6 +2,18 @@ import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
+// F1c fix: only follow http(s) destinations, never attacker-chosen schemes
+// like javascript:, data:, or vbscript:. Applied to BOTH navigation paths
+// below — the plain link and the password-unlocked one.
+function isSafeDestination(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export default function Redirector({ slug }) {
   const link = useQuery(api.links.getBySlug, { slug });
   const [password, setPassword] = useState("");
@@ -12,13 +24,15 @@ export default function Redirector({ slug }) {
   );
 
   useEffect(() => {
-    if (link && !link.requiresPassword && link.url) {
+    // V6 fix: scheme-check before navigating (plain links only).
+    if (link && !link.requiresPassword && isSafeDestination(link.url)) {
       window.location.replace(link.url);
     }
   }, [link]);
 
   useEffect(() => {
-    if (unlocked?.url) {
+    // V6 fix: same guard on the unlocked destination.
+    if (unlocked?.url && isSafeDestination(unlocked.url)) {
       window.location.replace(unlocked.url);
     }
   }, [unlocked]);

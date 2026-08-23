@@ -10,6 +10,16 @@ function formatClicks(n) {
 export default function PopularLinks() {
   const links = useQuery(api.links.listPublic) ?? []
 
+  // F1c companion: never render hrefs with attacker-chosen schemes.
+  const safeHrefs = (url) => {
+    try {
+      const u = new URL(url)
+      return u.protocol === 'http:' || u.protocol === 'https:' ? url : null
+    } catch {
+      return null
+    }
+  }
+
   return (
     <section className="border-t border-slate-200 bg-slate-100 dark:border-white/5 dark:bg-black/20">
       <div className="mx-auto max-w-6xl px-4 py-16">
@@ -29,12 +39,16 @@ export default function PopularLinks() {
           </p>
         ) : (
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {links.map((link) => (
+            {links.map((link) => {
+              // F1c companion: skip entries with unsafe destination schemes.
+              const href = safeHrefs(link.url)
+              if (!href) return null
+              return (
               <a
                 key={link._id}
-                href={link.url}
+                href={href}
                 target="_blank"
-                rel="noreferrer"
+                rel="noreferrer noopener"
                 className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-500/10 dark:border-white/10 dark:bg-slate-900/60 dark:hover:shadow-xl dark:hover:shadow-sky-500/10"
               >
                 <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.12),transparent_70%)] opacity-0 transition group-hover:opacity-100" />
@@ -56,7 +70,8 @@ export default function PopularLinks() {
                   </span>
                 </div>
               </a>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
