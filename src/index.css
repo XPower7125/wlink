@@ -8,6 +8,11 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+html:not(.dark) {
+  color-scheme: light;
 }
 
 body {

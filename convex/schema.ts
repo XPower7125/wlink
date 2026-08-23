@@ -15,6 +15,8 @@ export default defineSchema({
     // equality-comparable reference is the right shape (no joins needed).
     // Optional so pre-existing anonymous rows keep validating.
     ownerId: v.optional(v.string()),
+    // upstream feature: password-protected links (SHA-256, see links.ts)
+    passwordHash: v.optional(v.string()),
     clicks: v.number(),
     public: v.boolean(),
   })

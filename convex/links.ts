@@ -41,6 +41,17 @@ function fail(msg) {
   throw new Error(msg);
 }
 
+// ── upstream helper (password-protected links feature) ────────────────
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(input),
+  );
+  return [...new Uint8Array(digest)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 export const createLink = mutation({
   args: {
     slug: v.string(),
@@ -50,10 +61,12 @@ export const createLink = mutation({
     icon: v.string(),
     color: v.optional(v.string()),
     image: v.optional(v.string()),
+    // ── upstream feature: optional password protection ──────────────────
+    password: v.optional(v.string()),
     public: v.boolean(),
   },
   handler: async (ctx, args) => {
-    // ── FIX F1a: require an authenticated session (was: completely absent).
+    // ── FIX V1: require an authenticated session (was: completely absent).
     const user = await authComponent.getAuthUser(ctx);
     if (!user) {
       fail("You must be signed in to create links.");
@@ -63,7 +76,7 @@ export const createLink = mutation({
       .trim()
       .toLowerCase();
 
-    // ── FIX F1b: server-side validation (client checks are advisory only).
+    // ── FIX V4: server-side validation (client checks are advisory only).
     if (!SLUG_RE.test(slug)) {
       fail("Alias can only contain lowercase letters, numbers and hyphens (max 40).");
     }
@@ -109,7 +122,15 @@ export const createLink = mutation({
       fail("Image must be an http(s) URL.");
     }
 
-    // ── FIX F2b: rate limit — max creations per user per rolling hour.
+    // ── upstream feature: hash the optional password before storing.
+    // (V4 note: cap its length too — a "password" is still untrusted input.)
+    const password = args.password ? String(args.password).trim() : undefined;
+    if (password !== undefined && password.length > 200) {
+      fail("Password is too long.");
+    }
+    const passwordHash = password ? await sha256Hex(password) : undefined;
+
+    // ── FIX V1b: rate limit — max creations per user per rolling hour.
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
     const recent = await ctx.db
       .query("links")
@@ -120,7 +141,7 @@ export const createLink = mutation({
       fail("Rate limit reached: max 10 links per hour.");
     }
 
-    // ── FIX F1c: ownership-aware collision check against ALL links, so an
+    // ── FIX V1c: ownership-aware collision check against ALL links, so an
     // anonymous or other-user link can never be silently shadowed/hijacked.
     const existing = await ctx.db
       .query("links")
@@ -138,6 +159,7 @@ export const createLink = mutation({
       icon,
       color,
       image,
+      passwordHash,
       ownerId: user.id,
       clicks: 0,
       public: Boolean(args.public),
@@ -145,8 +167,42 @@ export const createLink = mutation({
   },
 });
 
+export const getBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const link = await ctx.db
+      .query("links")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+    if (!link) return null;
+    const { passwordHash, ...safe } = link;
+    return {
+      ...safe,
+      url: passwordHash ? null : link.url,
+      requiresPassword: Boolean(passwordHash),
+    };
+  },
+});
+
+// ── upstream feature: unlock query. NOTE (V2/V6 hardening): this hands the
+// raw stored url to whoever supplies the right password; the CLIENT must keep
+// validating the scheme before navigating (see Redirector isSafeDestination).
+export const unlock = query({
+  args: { slug: v.string(), password: v.string() },
+  handler: async (ctx, args) => {
+    const link = await ctx.db
+      .query("links")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+    if (!link) return { url: null };
+    if (!link.passwordHash) return { url: link.url };
+    const hash = await sha256Hex(args.password);
+    return { url: hash === link.passwordHash ? link.url : null };
+  },
+});
+
 // Click counting moved behind internalMutation so clients can't inflate it
-// directly (F2b companion: no public write surface on ranking counters).
+// directly (V5 companion: no public write surface on ranking counters).
 export const incrementClicks = internalMutation({
   args: { id: v.id("links") },
   handler: async (ctx, { id }) => {
@@ -156,23 +212,14 @@ export const incrementClicks = internalMutation({
   },
 });
 
-export const getBySlug = query({
-  args: { slug: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("links")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique();
-  },
-});
-
 export const listPublic = query({
   args: {},
   handler: async (ctx) => {
     const links = await ctx.db.query("links").collect();
     return links
-      .filter((l) => l.public)
+      .filter((l) => l.public && !l.passwordHash)
       .sort((a, b) => b.clicks - a.clicks)
-      .slice(0, 6);
+      .slice(0, 6)
+      .map(({ passwordHash, ...safe }) => safe);
   },
 });
