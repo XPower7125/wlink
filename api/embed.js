@@ -144,12 +144,16 @@ export default async function handler(req, res) {
 }
 
 async function proxyIndex(req, res) {
-  // FIX V2: serve the SPA shell from the pinned origin, not the raw Host header.
+  // NOTE: no hardenedHeaders here. The restrictive embed CSP
+  // (default-src 'none') is meant for the bot-facing HTML we render from
+  // user input. The SPA shell is build-output served verbatim (identical to
+  // what Vercel serves at /), and its scripts/styles would be blocked by
+  // that policy — which broke every human-served app route like /all.
+  // FIX V2 still applies: serve from the pinned origin, not the raw Host.
   const origin = resolveOrigin(req.headers.host);
   try {
     const r = await fetch(`${origin}/index.html`, { cache: "no-store" });
     const html = await r.text();
-    hardenedHeaders(res);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     return res.status(200).send(html);

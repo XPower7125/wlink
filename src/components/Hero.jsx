@@ -80,7 +80,7 @@ export default function Hero() {
       <div className="mx-auto flex max-w-3xl flex-col items-center px-4 pb-16 pt-20 text-center sm:pt-28">
         <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl">
           w
-          <span className="bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(56,189,248,0.35)]">
+          <span className="bg-gradient-to-r from-sky-400 via-sky-500 to-blue-600 bg-clip-text text-transparent drop-shadow-[0_0_30px_rgba(56,189,248,0.35)]">
             link
           </span>
         </h1>
@@ -221,7 +221,7 @@ export default function Hero() {
 
             <button
               type="submit"
-              className="w-full rounded-xl bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 py-3 font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:brightness-110 active:scale-[0.99]"
+              className="w-full rounded-xl bg-gradient-to-r from-sky-500 via-sky-500 to-blue-600 py-3 font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:brightness-110 active:scale-[0.99]"
             >
               Shorten it ✨
             </button>
