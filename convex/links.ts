@@ -148,7 +148,7 @@ export const createLink = mutation({
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
     const recent = await ctx.db
       .query("links")
-      .filter((q) => q.eq(q.field("ownerId"), user.id))
+      .filter((q) => q.eq(q.field("ownerId"), user._id))
       .filter((q) => q.gt(q.field("_creationTime"), oneHourAgo))
       .collect();
     if (recent.length >= RATE_LIMIT_PER_HOUR) {
@@ -161,7 +161,7 @@ export const createLink = mutation({
       .query("links")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
-    if (existing && existing.ownerId !== user.id) {
+    if (existing && existing.ownerId !== user._id) {
       fail("That alias is already taken. Please choose another.");
     }
 
@@ -174,7 +174,7 @@ export const createLink = mutation({
       color,
       image,
       passwordHash,
-      ownerId: user.id,
+      ownerId: user._id,
       clicks: 0,
       public: Boolean(args.public),
     });
@@ -271,7 +271,7 @@ export const listMine = query({
     if (!user) return [];
     const links = await ctx.db
       .query("links")
-      .withIndex("by_owner", (q) => q.eq("ownerId", user.id))
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
       .collect();
     return links
       .sort((a, b) => b._creationTime - a._creationTime)
@@ -346,7 +346,7 @@ export const updateLink = mutation({
 
     const link = await ctx.db.get(args.id);
     if (!link) fail("Link not found.");
-    if (link.ownerId !== user.id) {
+    if (link.ownerId !== user._id) {
       fail("You can only edit your own links.");
     }
 
@@ -380,7 +380,7 @@ export const removeLink = mutation({
 
     const link = await ctx.db.get(id);
     if (!link) return;
-    if (link.ownerId !== user.id) {
+    if (link.ownerId !== user._id) {
       fail("You can only delete your own links.");
     }
 
@@ -427,13 +427,37 @@ export const amModerator = action({
   handler: async (ctx) => {
     const user = await authComponent.safeGetAuthUser(ctx);
     if (!user) return false;
-    return hasModRole(ctx, user.id);
+    return hasModRole(ctx, user._id);
   },
 });
 
 export const getLinkById = internalQuery({
   args: { id: v.id("links") },
   handler: async (ctx, { id }) => ctx.db.get(id),
+});
+
+export const getAllLinksInternal = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const docs = await ctx.db.query("links").collect();
+    return docs
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .map(({ passwordHash, ...safe }) => ({
+        ...safe,
+        requiresPassword: Boolean(passwordHash),
+      }));
+  },
+});
+
+// Moderators can list every link (e.g. for the admin view of My Links).
+export const listAllAsModerator = action({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) return [];
+    if (!(await hasModRole(ctx, user._id))) return [];
+    return ctx.runQuery(internal.links.getAllLinksInternal);
+  },
 });
 
 export const removeLinkInternal = internalMutation({
@@ -455,8 +479,8 @@ export const moderatorDelete = action({
     const user = await authComponent.safeGetAuthUser(ctx);
     if (!user) fail("You must be signed in to delete links.");
 
-    if (link.ownerId !== user.id) {
-      const isMod = await hasModRole(ctx, user.id);
+    if (link.ownerId !== user._id) {
+      const isMod = await hasModRole(ctx, user._id);
       if (!isMod) fail("You can only delete your own links.");
     }
 

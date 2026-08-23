@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAction, useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { normalizeUrl } from '../lib/store'
@@ -142,9 +142,29 @@ export default function MyLinks() {
   const { data: session, isPending } = authClient.useSession()
   const links = useQuery(api.links.listMine, session ? {} : 'skip') ?? []
   const removeLink = useAction(api.links.moderatorDelete)
+  const checkMod = useAction(api.links.amModerator)
+  const loadAll = useAction(api.links.listAllAsModerator)
   const [editingId, setEditingId] = useState(null)
   const [confirmId, setConfirmId] = useState(null)
+  const [adminConfirmId, setAdminConfirmId] = useState(null)
+  const [isMod, setIsMod] = useState(false)
+  const [allLinks, setAllLinks] = useState(null)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    if (!session) return
+    checkMod()
+      .then((v) => {
+        if (!alive || !v) return
+        setIsMod(true)
+        return loadAll()
+          .then((r) => alive && setAllLinks(r))
+          .catch(() => {})
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [session, checkMod, loadAll])
 
   const handleDelete = async (id) => {
     try {
@@ -154,6 +174,12 @@ export default function MyLinks() {
       setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not delete link.')
     }
     setConfirmId(null)
+    setAdminConfirmId(null)
+    if (isMod) loadAll().then(setAllLinks).catch(() => {})
+  }
+
+  const refreshAll = () => {
+    if (isMod) loadAll().then(setAllLinks).catch(() => {})
   }
 
   return (
@@ -255,6 +281,75 @@ export default function MyLinks() {
           </div>
         )}
         {error && <p className="mt-4 text-sm text-rose-500 dark:text-rose-400">{error}</p>}
+
+        {isMod && (
+          <div className="mt-16">
+            <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">
+              Admin view ·{' '}
+              <span className="bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent">all links</span>
+            </h3>
+            {!allLinks ? (
+              <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+            ) : allLinks.length === 0 ? (
+              <p className="mt-6 text-sm text-slate-500 dark:text-slate-400">No links exist yet.</p>
+            ) : (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {allLinks.map((link) => (
+                  <div
+                    key={link._id}
+                    className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900/60"
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/20 to-blue-600/20 text-lg ring-1 ring-slate-200 dark:ring-white/10">
+                        {link.icon}
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100">{link.title}</h4>
+                        <p className="truncate font-mono text-xs text-slate-400 dark:text-slate-500">/{link.slug}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                          {formatClicks(link.clicks)}
+                        </span>
+                        {link.requiresPassword && <span title="Password protected">🔒</span>}
+                        {!link.public && (
+                          <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+                            private
+                          </span>
+                        )}
+                      </div>
+                      {adminConfirmId === link._id ? (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => handleDelete(link._id).then(refreshAll)}
+                            className="rounded-lg bg-rose-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-rose-600"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setAdminConfirmId(null)}
+                            className="rounded-lg border border-slate-200 bg-slate-100 px-2 py-1 text-xs text-slate-600 transition hover:bg-slate-200 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setAdminConfirmId(link._id)}
+                          className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-600 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </section>
   )
