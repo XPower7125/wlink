@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useMutation } from 'convex/react'
+import { api } from '../../convex/_generated/api'
 import { normalizeUrl, randomSlug } from '../lib/store'
 import { authClient, signInDiscord } from '../lib/auth-client'
 
@@ -10,17 +12,19 @@ function DiscordIcon({ className = 'size-5' }) {
   )
 }
 
-export default function Hero({ onAddLink }) {
+export default function Hero() {
   const { data: session, isPending } = authClient.useSession()
+  const createLink = useMutation(api.links.createLink)
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [icon, setIcon] = useState('🔗')
+  const [customAlias, setCustomAlias] = useState('')
   const [publicListing, setPublicListing] = useState(false)
   const [created, setCreated] = useState(null)
   const [error, setError] = useState('')
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!url.trim()) return setError('Inserisci un URL da accorciare.')
     try {
@@ -28,24 +32,30 @@ export default function Hero({ onAddLink }) {
     } catch {
       return setError('URL non valido.')
     }
-    const slug = randomSlug()
+    const custom = customAlias.trim().toLowerCase()
+    if (custom && !/^[a-z0-9-]{1,40}$/.test(custom)) {
+      return setError('Custom alias can only contain letters, numbers and hyphens (max 40).')
+    }
+    const slug = custom || randomSlug()
     const link = {
-      id: crypto.randomUUID(),
       slug,
       url: normalizeUrl(url),
       title: title.trim() || normalizeUrl(url).replace(/^https?:\/\//, '').split('/')[0],
       description: description.trim() || 'No description provided.',
       icon: icon.trim() || '🔗',
-      clicks: 0,
-      sponsored: false,
       public: publicListing,
     }
-    onAddLink(link)
+    try {
+      await createLink(link)
+    } catch (err) {
+      return setError(err?.message || 'Could not create link.')
+    }
     setCreated(`${window.location.origin}/${slug}`)
     setError('')
     setUrl('')
     setTitle('')
     setDescription('')
+    setCustomAlias('')
     setPublicListing(false)
   }
 
@@ -59,7 +69,7 @@ export default function Hero({ onAddLink }) {
             link
           </span>
         </h1>
-        <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">A noice URL shortener.</p>
+        <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">The best URL shortener.</p>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
           {session ? (
@@ -105,6 +115,13 @@ export default function Hero({ onAddLink }) {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://your-long-url.com/..."
+              className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
+            />
+            <input
+              value={customAlias}
+              onChange={(e) => setCustomAlias(e.target.value)}
+              placeholder="Custom alias (optional) e.g. myprofile"
+              maxLength={40}
               className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
             <div className="grid gap-3 sm:grid-cols-2">

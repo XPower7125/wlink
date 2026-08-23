@@ -4,11 +4,20 @@ import { authClient, signInDiscord } from '../lib/auth-client'
 const NAV = []
 
 export default function Header() {
-  const [dark, setDark] = useState(true)
+  const [dark, setDark] = useState(() => {
+    try {
+      return localStorage.getItem('wlink:theme') !== 'light'
+    } catch {
+      return true
+    }
+  })
   const { data: session } = authClient.useSession()
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
+    try {
+      localStorage.setItem('wlink:theme', dark ? 'dark' : 'light')
+    } catch {}
   }, [dark])
 
   return (

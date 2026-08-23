@@ -7,7 +7,7 @@
     "dev": "concurrently -k -n convex,vite \"npx convex dev\" \"vite\"",
     "dev:client": "vite",
     "dev:convex": "npx convex dev",
-    "build": "vite build",
+    "build": "convex codegen && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

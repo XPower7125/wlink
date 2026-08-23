@@ -1,17 +1,24 @@
 import Header from './components/Header'
 import Hero from './components/Hero'
 import PopularLinks from './components/PopularLinks'
-import { useLinks } from './lib/store'
+import Redirector from './components/Redirector'
 
 export default function App() {
-  const { links, addLink } = useLinks()
+  const slug =
+    typeof window !== 'undefined'
+      ? window.location.pathname.match(/^\/([a-zA-Z0-9-]+)$/)?.[1] ?? null
+      : null
+
+  if (slug) {
+    return <Redirector slug={slug} />
+  }
 
   return (
     <div className="min-h-dvh">
       <Header />
       <main>
-        <Hero onAddLink={addLink} />
-        <PopularLinks links={links} />
+        <Hero />
+        <PopularLinks />
       </main>
       <footer className="border-t border-slate-200 py-8 text-center text-sm text-slate-500 dark:border-white/5 dark:text-slate-400">
         Built with React + TailwindCSS · wlink © 2026
