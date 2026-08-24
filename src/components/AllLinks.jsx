@@ -10,7 +10,7 @@ function formatClicks(n) {
 
 export default function AllLinks() {
   const links = useQuery(api.links.listAllPublic) ?? []
-  const checkMod = useAction(api.links.amModerator)
+  const myRolesAction = useAction(api.links.myRoles)
   const deleteAny = useAction(api.links.moderatorDelete)
   const [isMod, setIsMod] = useState(false)
   const [adminConfirmId, setAdminConfirmId] = useState(null)
@@ -18,11 +18,11 @@ export default function AllLinks() {
 
   useEffect(() => {
     let alive = true
-    checkMod()
-      .then((v) => alive && setIsMod(v))
+    myRolesAction()
+      .then((roles) => alive && setIsMod(roles.moderator))
       .catch(() => {})
     return () => { alive = false }
-  }, [checkMod])
+  }, [myRolesAction])
 
   const handleModDelete = async (id) => {
     if (!window.confirm('Delete this link?')) return

@@ -40,10 +40,12 @@ export default function Redirector({ slug }) {
     }
   }, [unlocked, slug, recordClick]);
 
+  const redirectText = link.redirectText?.trim() || "Redirecting…";
+
   if (link === undefined) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
-        <p className="text-slate-500 dark:text-slate-400">Redirecting…</p>
+        <p className="text-slate-500 dark:text-slate-400">{redirectText}</p>
       </div>
     );
   }
@@ -99,7 +101,7 @@ export default function Redirector({ slug }) {
 
   return (
     <div className="flex min-h-dvh items-center justify-center">
-      <p className="text-slate-500 dark:text-slate-400">Redirecting…</p>
+      <p className="text-slate-500 dark:text-slate-400">{redirectText}</p>
     </div>
   );
 }

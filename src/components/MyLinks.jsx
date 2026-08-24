@@ -14,8 +14,9 @@ function formatClicks(n) {
 const inputCls =
   'w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500'
 
-function EditForm({ link, onDone }) {
+function EditForm({ link, onDone, premium }) {
   const updateLink = useMutation(api.links.updateLink)
+  const saveRedirectText = useAction(api.links.saveRedirectText)
   const [url, setUrl] = useState(link.url ?? '')
   const [title, setTitle] = useState(link.title)
   const [description, setDescription] = useState(link.description)
@@ -25,6 +26,7 @@ function EditForm({ link, onDone }) {
   const [password, setPassword] = useState('')
   const [removePassword, setRemovePassword] = useState(false)
   const [publicListing, setPublicListing] = useState(link.public)
+  const [redirectText, setRedirectText] = useState(link.redirectText ?? '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -56,6 +58,9 @@ function EditForm({ link, onDone }) {
         password: removePassword ? '' : password.trim() || undefined,
         public: publicListing,
       })
+      if (premium) {
+        await saveRedirectText({ id: link._id, text: redirectText })
+      }
       onDone()
     } catch (err) {
       setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not update link.')
@@ -117,6 +122,20 @@ function EditForm({ link, onDone }) {
           </button>
           <span className="text-sm font-medium text-slate-700 dark:text-slate-200">List this link publicly</span>
         </label>
+        {premium && (
+          <div>
+            <input
+              value={redirectText}
+              onChange={(e) => setRedirectText(e.target.value)}
+              maxLength={120}
+              placeholder="Custom redirect text (premium)"
+              className={inputCls}
+            />
+            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+              Premium: this text replaces "Redirecting…" on the redirect page.
+            </p>
+          </div>
+        )}
         {error && <p className="text-sm text-rose-500 dark:text-rose-400">{error}</p>}
         <div className="flex gap-2">
           <button
@@ -143,12 +162,13 @@ export default function MyLinks() {
   const { data: session, isPending } = authClient.useSession()
   const links = useQuery(api.links.listMine, session ? {} : 'skip') ?? []
   const removeLink = useMutation(api.links.removeLink)
-  const checkMod = useAction(api.links.amModerator)
+  const myRolesAction = useAction(api.links.myRoles)
   const loadAll = useAction(api.links.listAllAsModerator)
   const [editingId, setEditingId] = useState(null)
   const [confirmId, setConfirmId] = useState(null)
   const [adminConfirmId, setAdminConfirmId] = useState(null)
   const [isMod, setIsMod] = useState(false)
+  const [isPremium, setIsPremium] = useState(false)
   const [allLinks, setAllLinks] = useState(null)
   const [adminError, setAdminError] = useState('')
   const [error, setError] = useState('')
@@ -156,19 +176,22 @@ export default function MyLinks() {
   useEffect(() => {
     let alive = true
     if (!session) return
-    checkMod()
-      .then((v) => {
-        if (!alive || !v) return
-        setIsMod(true)
-        return loadAll()
-          .then((r) => {
-            if (alive) setAllLinks(r)
-          })
-          .catch((err) => {
-            if (alive) {
-              setAdminError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not load all links.')
-            }
-          })
+    myRolesAction()
+      .then((roles) => {
+        if (!alive) return
+        setIsMod(roles.moderator)
+        setIsPremium(roles.premium)
+        if (roles.moderator) {
+          return loadAll()
+            .then((r) => {
+              if (alive) setAllLinks(r)
+            })
+            .catch((err) => {
+              if (alive) {
+                setAdminError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not load all links.')
+              }
+            })
+        }
       })
       .catch((err) => {
         if (alive) {
@@ -176,7 +199,7 @@ export default function MyLinks() {
         }
       })
     return () => { alive = false }
-  }, [session, checkMod, loadAll])
+  }, [session, myRolesAction, loadAll])
 
   const handleDelete = async (id) => {
     try {
@@ -227,7 +250,7 @@ export default function MyLinks() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {links.map((link) =>
               editingId === link._id ? (
-                <EditForm key={link._id} link={link} onDone={() => setEditingId(null)} />
+                <EditForm key={link._id} link={link} premium={isPremium} onDone={() => setEditingId(null)} />
               ) : (
                 <div
                   key={link._id}

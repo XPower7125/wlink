@@ -20,14 +20,16 @@ const MAX_LEN = {
   title: 120,
   description: 300,
   image: 2048,
+  redirectText: 120,
 };
 
 const RATE_LIMIT_PER_HOUR = 10;
 
 // ── moderator config ─────────────────────────────────────────────────────
-// Members of this Discord guild holding this role may delete any link.
+// Members of this Discord guild holding these roles get special powers.
 const MOD_GUILD_ID = "1541152238494552087";
 const MOD_ROLE_ID = "1541154100576788580";
+const PREMIUM_ROLE_ID = "1541154192574390402";
 
 // Reserved slugs so short links can't shadow app routes/assets.
 const RESERVED = new Set([
@@ -402,9 +404,13 @@ async function getDiscordAccountId(ctx, authUserId: string): Promise<string | nu
   return account?.accountId ?? null;
 }
 
-// True if the user holds the moderator role in the configured Discord guild.
+// True if the user holds the given role in the configured Discord guild.
 // Requires DISCORD_BOT_TOKEN (bot must be a member of MOD_GUILD_ID).
-async function hasModRole(ctx, authUserId: string): Promise<boolean> {
+async function hasGuildRole(
+  ctx,
+  authUserId: string,
+  roleId: string,
+): Promise<boolean> {
   const token = process.env.DISCORD_BOT_TOKEN;
   if (!token) return false;
   try {
@@ -420,18 +426,31 @@ async function hasModRole(ctx, authUserId: string): Promise<boolean> {
     );
     if (!r.ok) return false; // 404 → not in guild; 401/403 → bad token
     const member = await r.json();
-    return Array.isArray(member?.roles) && member.roles.includes(MOD_ROLE_ID);
+    return Array.isArray(member?.roles) && member.roles.includes(roleId);
   } catch {
     return false;
   }
 }
 
-export const amModerator = action({
+async function hasModRole(ctx, authUserId: string): Promise<boolean> {
+  return hasGuildRole(ctx, authUserId, MOD_ROLE_ID);
+}
+
+async function hasPremiumRole(ctx, authUserId: string): Promise<boolean> {
+  return hasGuildRole(ctx, authUserId, PREMIUM_ROLE_ID);
+}
+
+// Returns the caller's Discord-derived privileges in one call.
+export const myRoles = action({
   args: {},
   handler: async (ctx) => {
     const user = await authComponent.safeGetAuthUser(ctx);
-    if (!user) return false;
-    return hasModRole(ctx, user._id);
+    if (!user) return { moderator: false, premium: false };
+    const [moderator, premium] = await Promise.all([
+      hasModRole(ctx, user._id),
+      hasPremiumRole(ctx, user._id),
+    ]);
+    return { moderator, premium };
   },
 });
 
@@ -468,6 +487,41 @@ export const removeLinkInternal = internalMutation({
   args: { id: v.id("links") },
   handler: async (ctx, { id }) => {
     await ctx.db.delete(id);
+  },
+});
+
+// ── premium: custom redirect text ─────────────────────────────────────────
+
+export const setRedirectTextInternal = internalMutation({
+  args: { id: v.id("links"), text: v.string() },
+  handler: async (ctx, { id, text }) => {
+    // Store undefined when cleared so it falls back to the default.
+    await ctx.db.patch(id, { redirectText: text === "" ? undefined : text });
+  },
+});
+
+// Premium users may set the text shown on the redirect page.
+export const saveRedirectText = action({
+  args: { id: v.id("links"), text: v.string() },
+  handler: async (ctx, { id, text }) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) fail("You must be signed in to edit links.");
+
+    const link = await ctx.runQuery(internal.links.getLinkById, { id });
+    if (!link) fail("Link not found.");
+    if (link.ownerId !== user._id) fail("You can only edit your own links.");
+    if (!(await hasPremiumRole(ctx, user._id))) {
+      fail("Custom redirect text is a premium feature.");
+    }
+
+    const clean = String(text ?? "").trim();
+    if (clean.length > MAX_LEN.redirectText) fail("Redirect text is too long.");
+    if (CTRL_RE.test(clean)) fail("Redirect text contains invalid characters.");
+
+    await ctx.runMutation(internal.links.setRedirectTextInternal, {
+      id,
+      text: clean,
+    });
   },
 });
 

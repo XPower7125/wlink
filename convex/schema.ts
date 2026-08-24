@@ -19,6 +19,8 @@ export default defineSchema({
     passwordHash: v.optional(v.string()),
     clicks: v.number(),
     public: v.boolean(),
+    // Premium feature: custom text shown on the redirect page.
+    redirectText: v.optional(v.string()),
   })
     .index("by_slug", ["slug"])
     .index("by_owner", ["ownerId"]),
