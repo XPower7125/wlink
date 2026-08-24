@@ -167,7 +167,7 @@ export const createLink = mutation({
       fail("That alias is already taken. Please choose another.");
     }
 
-    await ctx.db.insert("links", {
+    return ctx.db.insert("links", {
       slug,
       url,
       title,

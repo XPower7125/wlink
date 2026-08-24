@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useMutation } from 'convex/react'
+import { useEffect, useState } from 'react'
+import { useAction, useMutation } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { normalizeUrl, randomSlug } from '../lib/store'
 import { authClient, signInDiscord } from '../lib/auth-client'
@@ -15,6 +15,8 @@ function DiscordIcon({ className = 'size-5' }) {
 export default function Hero() {
   const { data: session, isPending } = authClient.useSession()
   const createLink = useMutation(api.links.createLink)
+  const saveRedirectText = useAction(api.links.saveRedirectText)
+  const myRolesAction = useAction(api.links.myRoles)
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -24,8 +26,22 @@ export default function Hero() {
   const [password, setPassword] = useState('')
   const [customAlias, setCustomAlias] = useState('')
   const [publicListing, setPublicListing] = useState(false)
+  const [redirectText, setRedirectText] = useState('')
+  const [isPremium, setIsPremium] = useState(false)
   const [created, setCreated] = useState(null)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    let alive = true
+    if (!session) {
+      setIsPremium(false)
+      return
+    }
+    myRolesAction()
+      .then((roles) => alive && setIsPremium(roles.premium))
+      .catch(() => {})
+    return () => { alive = false }
+  }, [session, myRolesAction])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -57,10 +73,18 @@ export default function Hero() {
       password: password.trim() || undefined,
       public: publicListing,
     }
+    let newId
     try {
-      await createLink(link)
+      newId = await createLink(link)
     } catch (err) {
       return setError(err?.message || 'Could not create link.')
+    }
+    if (isPremium && redirectText.trim()) {
+      try {
+        await saveRedirectText({ id: newId, text: redirectText.trim() })
+      } catch (err) {
+        return setError(err?.message || 'Could not save redirect text.')
+      }
     }
     setCreated(`${window.location.origin}/${slug}`)
     setError('')
@@ -72,6 +96,7 @@ export default function Hero() {
     setColor('#38bdf8')
     setImage('')
     setPassword('')
+    setRedirectText('')
   }
 
   return (
@@ -190,6 +215,38 @@ export default function Hero() {
               placeholder="Password protect this link (optional)"
               className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
+
+            <div>
+              <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                <span>👑</span> Custom redirect text
+              </label>
+              {isPremium ? (
+                <>
+                  <input
+                    value={redirectText}
+                    onChange={(e) => setRedirectText(e.target.value)}
+                    maxLength={120}
+                    placeholder="Custom redirect text (premium)"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
+                  />
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                    Premium: this text replaces "Redirecting…" on the redirect page.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <input
+                    disabled
+                    value=""
+                    placeholder="Premium feature"
+                    className="w-full cursor-not-allowed rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700/70 outline-none dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300/70"
+                  />
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-300/80">
+                    Premium feature — upgrade to customize the redirect message.
+                  </p>
+                </>
+              )}
+            </div>
 
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-sky-400/30 dark:border-white/10 dark:bg-black/20">
               <button
