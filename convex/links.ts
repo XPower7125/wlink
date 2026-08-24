@@ -26,6 +26,23 @@ const MAX_LEN = {
 const RATE_LIMIT_PER_HOUR = 10;
 const PREMIUM_RATE_LIMIT_PER_HOUR = 25;
 
+// ── premium early access: expiring links ─────────────────────────────────
+export const EXPIRY_DURATIONS_MS: Record<string, number> = {
+  "30m": 30 * 60 * 1000,
+  "1h": 60 * 60 * 1000,
+  "2h": 2 * 60 * 60 * 1000,
+  "3h": 3 * 60 * 60 * 1000,
+  "6h": 6 * 60 * 60 * 1000,
+  "12h": 12 * 60 * 60 * 1000,
+  "1d": 24 * 60 * 60 * 1000,
+  "2d": 2 * 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000,
+};
+
+function isExpired(link: any, now = Date.now()): boolean {
+  return link.expiresAt != null && link.expiresAt <= now;
+}
+
 // ── moderator config ─────────────────────────────────────────────────────
 // Members of this Discord guild holding these roles get special powers.
 const MOD_GUILD_ID = "1541152238494552087";
@@ -81,6 +98,8 @@ export const createLink = mutation({
     // ── upstream feature: optional password protection ──────────────────
     password: v.optional(v.string()),
     public: v.boolean(),
+    // ── premium early access: expiry selector ("30m" … "7d") ───────────
+    expiresIn: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // ── FIX V1: require an authenticated session (was: completely absent).
@@ -147,6 +166,18 @@ export const createLink = mutation({
     }
     const passwordHash = password ? await sha256Hex(password) : undefined;
 
+    // Expiring links (premium early access). Staff exempt from the gate.
+    let expiresAt: number | undefined;
+    if (args.expiresIn !== undefined && args.expiresIn !== "") {
+      const ms = EXPIRY_DURATIONS_MS[String(args.expiresIn)];
+      if (!ms) fail("Invalid expiry duration.");
+      const staffOrPremium = isStaffCached || isPremiumCached;
+      if (!staffOrPremium) {
+        fail("Expiring links are a premium feature (early access).");
+      }
+      expiresAt = Date.now() + ms;
+    }
+
     // ── FIX V1b: rate limit — max creations per user per rolling hour.
     // Staff have no limit; premium get 25/hr, others 10/hr. Roles are cached
     // in userRoles (updated by myRoles action) because mutations can't fetch Discord.
@@ -191,6 +222,7 @@ export const createLink = mutation({
       ownerId: user._id,
       clicks: 0,
       public: Boolean(args.public),
+      expiresAt,
     });
   },
 });
@@ -204,6 +236,7 @@ export const getBySlug = query({
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
     if (!link) return null;
+    if (isExpired(link)) return null; // expired links stop resolving
     const { passwordHash, ...safe } = link;
     return {
       ...safe,
@@ -224,7 +257,7 @@ export const unlock = query({
       .query("links")
       .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
-    if (!link) return { url: null };
+    if (!link || isExpired(link)) return { url: null };
     if (!link.passwordHash) return { url: link.url };
     const hash = await sha256Hex(args.password);
     return { url: hash === link.passwordHash ? link.url : null };
@@ -326,7 +359,7 @@ export const listPublic = query({
     const now = Date.now();
     const links = await ctx.db.query("links").collect();
     return links
-      .filter((l) => l.public && !l.passwordHash)
+      .filter((l) => l.public && !l.passwordHash && !isExpired(l, now))
       .sort((a, b) => {
         const pinCmp = sortPinnedFirst(a, b, now);
         if (pinCmp !== 0) return pinCmp;
@@ -334,7 +367,6 @@ export const listPublic = query({
         if (bumpCmp !== 0) return bumpCmp;
         return b.clicks - a.clicks;
       })
-      .slice(0, 23)
       .map(({ passwordHash, ...safe }) => safe);
   },
 });

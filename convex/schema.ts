@@ -30,8 +30,11 @@ export default defineSchema({
     pinnedAt: v.optional(v.number()),
     pinnedUntil: v.optional(v.number()),
     pinnedPermanent: v.optional(v.boolean()),
-    // Premium feature (early access): last bump time, ms epoch.
+    // Premium early access feature: bump a link once every 6h.
     bumpedAt: v.optional(v.number()),
+    // Premium early access feature: after this ms-epoch instant the link stops
+    // resolving (redirects 404-ish, hidden from listings).
+    expiresAt: v.optional(v.number()),
   })
     .index("by_slug", ["slug"])
     .index("by_owner", ["ownerId"]),
