@@ -474,6 +474,27 @@ async function hasPremiumRole(ctx, authUserId: string): Promise<boolean> {
   return hasGuildRole(ctx, authUserId, PREMIUM_ROLE_ID);
 }
 
+export const getUserRoleInternal = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) =>
+    ctx.db
+      .query("userRoles")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique(),
+});
+
+export const upsertUserRoleInternal = internalMutation({
+  args: { userId: v.string(), isPremium: v.boolean(), isStaff: v.boolean(), updatedAt: v.number() },
+  handler: async (ctx, { userId, isPremium, isStaff, updatedAt }) => {
+    const existing = await ctx.db
+      .query("userRoles")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (existing) await ctx.db.patch(existing._id, { isStaff, isPremium, updatedAt });
+    else await ctx.db.insert("userRoles", { userId, isPremium, isStaff, updatedAt });
+  },
+});
+
 // Returns the caller's Discord-derived privileges in one call.
 export const myRoles = action({
   args: {},
@@ -485,19 +506,21 @@ export const myRoles = action({
       hasPremiumRole(ctx, user._id),
     ]);
     // Cache for mutations (e.g. createLink rate limits) that can't fetch Discord live.
-    const existing = await ctx.db
-      .query("userRoles")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
-      .unique();
-    const now = Date.now();
-    if (existing) {
-      await ctx.db.patch(existing._id, { isStaff: moderator, isPremium: premium, updatedAt: now });
-    } else {
-      await ctx.db.insert("userRoles", { userId: user._id, isStaff: moderator, isPremium: premium, updatedAt: now });
+    try {
+      await ctx.runMutation(internal.links.upsertUserRoleInternal, {
+        userId: user._id,
+        isStaff: moderator,
+        isPremium: premium,
+        updatedAt: Date.now(),
+      });
+    } catch (e) {
+      console.error("myRoles cache write failed", e);
     }
     return { moderator, premium };
   },
 });
+
+
 
 export const getLinkById = internalQuery({
   args: { id: v.id("links") },
