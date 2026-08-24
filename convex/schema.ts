@@ -30,8 +30,9 @@ export default defineSchema({
     pinnedAt: v.optional(v.number()),
     pinnedUntil: v.optional(v.number()),
     pinnedPermanent: v.optional(v.boolean()),
-    // Premium early access feature: bump a link once every 6h.
+    // Bump feature: last bump time + when the ranking boost ends (ms epoch).
     bumpedAt: v.optional(v.number()),
+    bumpedUntil: v.optional(v.number()),
     // When set, this link ranks above normal links until this timestamp.
     // Premium members may choose a longer bump duration.
     bumpBoostUntil: v.optional(v.number()),

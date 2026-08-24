@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
@@ -11,8 +12,21 @@ function isPinned(link) {
   return link.pinnedUntil != null && link.pinnedUntil > Date.now();
 }
 const BUMP_BOOST_MS = 60 * 60 * 1000
-function bumpActive(link) {
-  return link.bumpedAt != null && Date.now() - link.bumpedAt < BUMP_BOOST_MS
+function bumpBoostLeft(link, now) {
+  const until = link.bumpBoostUntil ?? (link.bumpedAt ?? 0) + BUMP_BOOST_MS
+  const minsLeft = Math.ceil((until - now) / 60000)
+  if (minsLeft <= 0) return null
+  const h = Math.floor(minsLeft / 60)
+  const m = minsLeft % 60
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+function useNow(intervalMs = 30000) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), intervalMs)
+    return () => clearInterval(t)
+  }, [intervalMs])
+  return now
 }
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 function titleStyle(link) {
@@ -29,6 +43,7 @@ function titleStyle(link) {
 }
 
 export default function PopularLinks() {
+  const now = useNow()
   const links = useQuery(api.links.listPublic) ?? []
 
   // F1c companion: never render hrefs with attacker-chosen schemes.
@@ -81,7 +96,7 @@ export default function PopularLinks() {
                   )}
                   {link.bumpedAt != null && (
                     <span className="rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300">
-                      🚀 Bumped
+                      🚀 {bumpBoostLeft(link, now) ? `Boosted · ${bumpBoostLeft(link, now)} left` : "Bumped"}
                     </span>
                   )}
                 </div>

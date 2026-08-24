@@ -345,7 +345,7 @@ export default function MyLinks() {
   const [adminConfirmId, setAdminConfirmId] = useState(null)
   const [isMod, setIsMod] = useState(false)
   const [isPremium, setIsPremium] = useState(false)
-  const [bumpDuration, setBumpDuration] = useState('30m')
+  const [bumpDuration, setBumpDuration] = useState('1h')
   const [allLinks, setAllLinks] = useState(null)
   const [adminError, setAdminError] = useState('')
   const [error, setError] = useState('')
@@ -565,7 +565,7 @@ export default function MyLinks() {
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-medium text-violet-700 dark:text-violet-300">🚀 Bump to top of popular</p>
-                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">{isMod ? 'Staff: no cooldown' : '30 minute boost · once every 6h'}</p>
+                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">{isMod ? 'Staff: no cooldown' : '1 hour boost · once every 6h'}</p>
                       </div>
                       <button
                         onClick={() => handleBump(link)}

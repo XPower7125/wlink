@@ -318,7 +318,7 @@ export const bumpLink = mutation({
       .unique();
     const isStaff = rolesDoc?.isStaff ?? false;
     const isPremium = rolesDoc?.isPremium ?? false;
-    const selectedDuration = duration ?? "30m";
+    const selectedDuration = duration ?? "1h";
     if (duration !== undefined && !(isStaff || isPremium)) {
       fail("Choosing a bump duration is a premium feature.");
     }
