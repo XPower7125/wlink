@@ -465,6 +465,11 @@ export default function MyLinks() {
                           {expLabel(link)}
                         </span>
                       )}
+                      {link.bumpedAt != null && (
+                        <span className="rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300">
+                          🚀 Bumped
+                        </span>
+                      )}
                       {isPinned(link) && (
                         <span
                           className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${link.pinnedPermanent ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-300" : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"}`}
