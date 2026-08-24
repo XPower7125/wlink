@@ -23,6 +23,9 @@ export default defineSchema({
     redirectText: v.optional(v.string()),
     // Premium feature: custom title text color (hex) shown in public listings.
     textColor: v.optional(v.string()),
+    // Premium feature: optional second hex — when set, the title renders as a
+    // linear gradient from textColor to textColor2.
+    textColor2: v.optional(v.string()),
     // Pinning (premium + staff). pinnedUntil is ms epoch; pinnedPermanent for staff.
     pinnedAt: v.optional(v.number()),
     pinnedUntil: v.optional(v.number()),

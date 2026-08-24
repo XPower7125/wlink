@@ -15,6 +15,19 @@ const BUMP_BOOST_MS = 60 * 60 * 1000
 function bumpActive(link) {
   return link.bumpedAt != null && Date.now() - link.bumpedAt < BUMP_BOOST_MS
 }
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
+function titleStyle(link) {
+  if (link.textColor && link.textColor2 && HEX_RE.test(link.textColor) && HEX_RE.test(link.textColor2)) {
+    return {
+      backgroundImage: `linear-gradient(90deg, ${link.textColor}, ${link.textColor2})`,
+      WebkitBackgroundClip: 'text',
+      backgroundClip: 'text',
+      color: 'transparent',
+      WebkitTextFillColor: 'transparent',
+    }
+  }
+  return link.textColor ? { color: link.textColor } : undefined
+}
 
 export default function AllLinks() {
   const links = useQuery(api.links.listAllPublic) ?? []
@@ -128,7 +141,7 @@ export default function AllLinks() {
                     <div className="min-w-0">
                       <h3
                         className="truncate pr-16 font-semibold text-slate-900 dark:text-slate-100"
-                        style={link.textColor ? { color: link.textColor } : undefined}
+                        style={titleStyle(link)}
                       >
                         {isPinned(link) ? "📌 " : ""}
                         {link.title}

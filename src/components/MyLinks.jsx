@@ -50,6 +50,20 @@ function bumpLabel(link, now, isMod = false) {
   return h > 0 ? `⏳ ${h}h ${m}m` : `⏳ ${m}m`
 }
 
+const HEX_RE = /^#[0-9a-fA-F]{6}$/
+function titleStyle(link) {
+  if (link.textColor && link.textColor2 && HEX_RE.test(link.textColor) && HEX_RE.test(link.textColor2)) {
+    return {
+      backgroundImage: `linear-gradient(90deg, ${link.textColor}, ${link.textColor2})`,
+      WebkitBackgroundClip: 'text',
+      backgroundClip: 'text',
+      color: 'transparent',
+      WebkitTextFillColor: 'transparent',
+    }
+  }
+  return link.textColor ? { color: link.textColor } : undefined
+}
+
 const inputCls =
   'w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500'
 
@@ -68,6 +82,7 @@ function EditForm({ link, onDone, premium }) {
   const [publicListing, setPublicListing] = useState(link.public)
   const [redirectText, setRedirectText] = useState(link.redirectText ?? '')
   const [textColor, setTextColor] = useState(link.textColor ?? '')
+  const [textColor2, setTextColor2] = useState(link.textColor2 ?? '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -101,7 +116,7 @@ function EditForm({ link, onDone, premium }) {
       })
       if (premium) {
         await saveRedirectText({ id: link._id, text: redirectText })
-        await saveTextColor({ id: link._id, color: textColor })
+        await saveTextColor({ id: link._id, color: textColor, color2: textColor2 })
       }
       onDone()
     } catch (err) {
@@ -221,6 +236,26 @@ function EditForm({ link, onDone, premium }) {
                 )}
               </div>
               <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Premium: custom color for the title in public listings.</p>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="color"
+                  value={textColor2 || '#818cf8'}
+                  onChange={(e) => setTextColor2(e.target.value)}
+                  className="size-8 cursor-pointer rounded-lg border border-slate-200 bg-transparent p-0 dark:border-white/10 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0"
+                />
+                <input
+                  value={textColor2}
+                  onChange={(e) => setTextColor2(e.target.value)}
+                  placeholder="Gradient end color (optional, e.g. #818cf8)"
+                  className={inputCls + ' flex-1'}
+                />
+                {textColor2 && (
+                  <button type="button" onClick={() => setTextColor2('')} className="text-xs text-slate-500 dark:text-slate-400">
+                    Clear
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-violet-500 dark:text-violet-300">Premium: set an end color to render the title as a gradient.</p>
             </>
           ) : (
             <>
@@ -391,7 +426,7 @@ export default function MyLinks() {
                     <div className="min-w-0">
                       <h3
                         className="truncate font-semibold text-slate-900 dark:text-slate-100"
-                        style={link.textColor ? { color: link.textColor } : undefined}
+                        style={titleStyle(link)}
                       >
                         {isPinned(link) ? "📌 " : ""}
                         {link.title}
@@ -552,7 +587,7 @@ export default function MyLinks() {
                         {link.icon}
                       </span>
                       <div className="min-w-0">
-                        <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100" style={link.textColor ? { color: link.textColor } : undefined}>
+                        <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100" style={titleStyle(link)}>
                           {isPinned(link) ? "📌 " : ""}
                           {link.title}
                         </h4>
