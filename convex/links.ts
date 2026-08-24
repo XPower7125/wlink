@@ -275,7 +275,8 @@ export const bumpLink = mutation({
       .query("userRoles")
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .unique();
-    if (!(rolesDoc?.isPremium ?? false)) {
+    const isStaff = rolesDoc?.isStaff ?? false;
+    if (!(isStaff || (rolesDoc?.isPremium ?? false))) {
       fail("Bumping is a premium feature (early access).");
     }
 
@@ -288,7 +289,8 @@ export const bumpLink = mutation({
     if (link.ownerId !== user._id) fail("You can only bump your own links.");
 
     const now = Date.now();
-    if (link.bumpedAt != null) {
+    // Staff have no rate limits on bumping.
+    if (!isStaff && link.bumpedAt != null) {
       const elapsed = now - link.bumpedAt;
       if (elapsed < BUMP_COOLDOWN_MS) {
         const minsLeft = Math.ceil((BUMP_COOLDOWN_MS - elapsed) / 60000);

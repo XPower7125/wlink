@@ -39,7 +39,8 @@ function useNow(intervalMs = 30000) {
   }, [intervalMs])
   return now
 }
-function bumpLabel(link, now) {
+function bumpLabel(link, now, isMod = false) {
+  if (isMod) return "🚀 Bump"
   if (!link.bumpedAt) return "🚀 Bump"
   const elapsed = now - link.bumpedAt
   if (elapsed >= BUMP_COOLDOWN_MS) return "🚀 Bump"
@@ -330,7 +331,7 @@ export default function MyLinks() {
   }
 
   const handleBump = async (link) => {
-    if (!link.bumpedAt || now - link.bumpedAt >= BUMP_COOLDOWN_MS) {
+    if (isMod || !link.bumpedAt || now - link.bumpedAt >= BUMP_COOLDOWN_MS) {
       try {
         await bumpLinkMutation({ slug: link.slug })
         setError('')
@@ -471,14 +472,14 @@ export default function MyLinks() {
                     <div className="mt-3 flex items-center justify-between rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 dark:border-violet-400/30 dark:bg-violet-400/10">
                       <div>
                         <p className="text-xs font-medium text-violet-700 dark:text-violet-300">🚀 Bump to top of popular</p>
-                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">Early access · once every 6h</p>
+                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">{isMod ? "Early access · staff: no cooldown" : "Early access · once every 6h"}</p>
                       </div>
                       <button
                         onClick={() => handleBump(link)}
-                        disabled={link.bumpedAt && now - link.bumpedAt < BUMP_COOLDOWN_MS}
+                        disabled={!isMod && link.bumpedAt && now - link.bumpedAt < BUMP_COOLDOWN_MS}
                         className="rounded-lg bg-violet-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {bumpLabel(link, now)}
+                        {bumpLabel(link, now, isMod)}
                       </button>
                     </div>
                   ) : (
