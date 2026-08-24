@@ -1,6 +1,6 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { authComponent, createAuth } from "./auth";
 
 const http = httpRouter();
@@ -75,7 +75,8 @@ http.route({
   path: "/api/ext/shorten",
   method: "POST",
   handler: httpAction(async (ctx, req) => {
-    const auth = String(req.headers["authorization"] || "");
+    // NOTE: req.headers is a Headers instance — use .get(), bracket access is always undefined.
+    const auth = String(req.headers.get("authorization") || "");
     const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
     if (!/^[0-9a-f]{32,128}$/.test(token)) {
       return extJson({ error: "Missing or invalid token." }, 401);
@@ -102,22 +103,19 @@ http.route({
     }
     if (title.length > 120) title = title.slice(0, 120);
 
-    const userId = await ctx.runQuery(internal.links.extTokenUserId, { token });
-    if (!userId) {
+    const authInfo = await ctx.runQuery(internal.links.extAuthInfo, { token });
+    if (!authInfo) {
       return extJson({ error: "Invalid token. Regenerate it on the wlink site." }, 401);
     }
+    const userId = authInfo.userId;
 
     // Rate limit (staff exempt via cached roles).
-    const roles = await ctx.db
-      .query("userRoles")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .unique();
-    if (!(roles?.isStaff ?? false)) {
+    if (!authInfo.isStaff) {
       const recent = await ctx.runQuery(internal.links.extCountRecentLinks, {
         userId,
         since: Date.now() - 60 * 60 * 1000,
       });
-      const limit = roles?.isPremium ? 60 : EXT_RATE_LIMIT_PER_HOUR;
+      const limit = authInfo.isPremium ? 60 : EXT_RATE_LIMIT_PER_HOUR;
       if (recent >= limit) {
         return extJson({ error: `Rate limit reached: max ${limit} links per hour.` }, 429);
       }

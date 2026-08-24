@@ -43,7 +43,11 @@ async function loadTab() {
 async function shorten() {
   const { apiBase, siteOrigin, token } = await config()
   if (!token) {
-    setMsg('No token set. Open Settings and paste your wlink extension token.', 'error')
+    setMsg('No token set. Click Settings below and paste the token from wlink /settings.', 'error')
+    return
+  }
+  if (!/^[0-9a-f]{32,128}$/.test(token)) {
+    setMsg('That token looks malformed — re-copy the full token from wlink /settings (use the Copy button).', 'error')
     return
   }
   if (!currentUrl) return

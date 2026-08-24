@@ -757,6 +757,23 @@ export const extTokenUserId = internalQuery({
   },
 });
 
+// Token → user + cached roles, for the extension httpAction (no ctx.db there).
+export const extAuthInfo = internalQuery({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const doc = await ctx.db
+      .query("extTokens")
+      .withIndex("by_token", (q) => q.eq("token", token))
+      .unique();
+    if (!doc) return null;
+    const roles = await ctx.db
+      .query("userRoles")
+      .withIndex("by_userId", (q) => q.eq("userId", doc.userId))
+      .unique();
+    return { userId: doc.userId, isStaff: roles?.isStaff ?? false, isPremium: roles?.isPremium ?? false };
+  },
+});
+
 export const extSlugExists = internalQuery({
   args: { slug: v.string() },
   handler: async (ctx, { slug }) => {
