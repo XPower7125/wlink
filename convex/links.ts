@@ -419,6 +419,47 @@ export const listAllPublic = query({
   },
 });
 
+// Paginated public listing for the agent-facing public API. Returns a trimmed
+// shape (no ownerId/colors) plus the next offset for pagination.
+export const listPublicApi = query({
+  args: {
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const limit = Math.min(Math.max(Math.floor(args.limit ?? 25), 1), 100);
+    const offset = Math.max(Math.floor(args.offset ?? 0), 0);
+    const links = await ctx.db.query("links").collect();
+    const sorted = links
+      .filter((l) => l.public && !l.passwordHash && !isExpired(l, now))
+      .sort((a, b) => {
+        const pinCmp = sortPinnedFirst(a, b, now);
+        if (pinCmp !== 0) return pinCmp;
+        const bumpCmp = sortBumpedFirst(a, b, now);
+        if (bumpCmp !== 0) return bumpCmp;
+        return b.clicks - a.clicks;
+      });
+    return {
+      total: sorted.length,
+      offset,
+      limit,
+      items: sorted.slice(offset, offset + limit).map((l) => ({
+        slug: l.slug,
+        url: l.url,
+        title: l.title,
+        description: l.description,
+        icon: l.icon ?? null,
+        clicks: l.clicks,
+        pinned: isPinned(l, now),
+        pinnedPermanent: Boolean(l.pinnedPermanent),
+        bumped: Boolean(l.bumpedAt != null && (l.bumpBoostUntil ?? l.bumpedAt + 60 * 60 * 1000) > now),
+        createdAt: l._creationTime,
+      })),
+    };
+  },
+});
+
 export const listMine = query({
   args: {},
   handler: async (ctx) => {
@@ -802,8 +843,9 @@ export const extInsertLink = internalMutation({
     slug: v.string(),
     url: v.string(),
     title: v.string(),
+    public: v.optional(v.boolean()),
   },
-  handler: async (ctx, { ownerId, slug, url, title }) => {
+  handler: async (ctx, { ownerId, slug, url, title, public: isPublic }) => {
     const id = await ctx.db.insert("links", {
       slug,
       url,
@@ -812,7 +854,7 @@ export const extInsertLink = internalMutation({
       icon: "\u{1F517}",
       ownerId,
       clicks: 0,
-      public: false,
+      public: Boolean(isPublic),
       embedMode: "wlink",
     });
     return id;
