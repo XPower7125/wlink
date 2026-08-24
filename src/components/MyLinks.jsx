@@ -29,7 +29,8 @@ function pinLabel(link) {
   return "📌 Pinned";
 }
 
-const BUMP_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const PREMIUM_BUMP_COOLDOWN_MS = 60 * 60 * 1000;
+const FREE_BUMP_COOLDOWN_MS = 3 * 60 * 60 * 1000;
 const LEGACY_BUMP_BOOST_MS = 60 * 60 * 1000;
 // Ticking clock so cooldown labels refresh every minute.
 function useNow(intervalMs = 30000) {
@@ -40,19 +41,24 @@ function useNow(intervalMs = 30000) {
   }, [intervalMs])
   return now
 }
-function bumpLabel(link, now, isMod = false) {
+function bumpLabel(link, now, isMod = false, isPremium = false) {
   if (isMod) return "🚀 Bump"
   if (!link.bumpedAt) return "🚀 Bump"
-  const elapsed = now - link.bumpedAt
-  if (elapsed >= BUMP_COOLDOWN_MS) return "🚀 Bump"
-  return `⏳ ${bumpTimeLeft(link, now)}`
+  const left = bumpTimeLeft(link, now, isMod, isPremium)
+  return left ? `⏳ ${left}` : "🚀 Bump"
 }
 
-function bumpTimeLeft(link, now) {
-  if (!link.bumpedAt) return null
-  const elapsed = now - link.bumpedAt
-  if (elapsed >= BUMP_COOLDOWN_MS) return null
-  const minsLeft = Math.ceil((BUMP_COOLDOWN_MS - elapsed) / 60000)
+// Cooldowns start once the boost ends: premium 1h, free 3h, staff none.
+function bumpReadyAt(link, isMod = false, isPremium = false) {
+  if (!link.bumpedAt) return 0
+  if (isMod) return 0
+  const boostEnd = link.bumpBoostUntil ?? link.bumpedAt + LEGACY_BUMP_BOOST_MS
+  return boostEnd + (isPremium ? PREMIUM_BUMP_COOLDOWN_MS : FREE_BUMP_COOLDOWN_MS)
+}
+function bumpTimeLeft(link, now, isMod = false, isPremium = false) {
+  const readyAt = bumpReadyAt(link, isMod, isPremium)
+  const minsLeft = Math.ceil((readyAt - now) / 60000)
+  if (readyAt === 0 || minsLeft <= 0) return null
   const h = Math.floor(minsLeft / 60)
   const m = minsLeft % 60
   return h > 0 ? `${h}h ${m}m` : `${m}m`
@@ -408,7 +414,7 @@ export default function MyLinks() {
   }
 
   const handleBump = async (link) => {
-    if (isMod || !link.bumpedAt || now - link.bumpedAt >= BUMP_COOLDOWN_MS) {
+    if (isMod || now >= bumpReadyAt(link, isMod, isPremium)) {
       try {
         await bumpLinkMutation({
           slug: link.slug,
@@ -499,8 +505,8 @@ export default function MyLinks() {
                         <span className="rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300">
                           {bumpBoostTimeLeft(link, now)
                             ? `🚀 Boosted · ${bumpBoostTimeLeft(link, now)} remaining`
-                            : bumpTimeLeft(link, now)
-                              ? `🚀 Bump ready in ${bumpTimeLeft(link, now)}`
+                            : bumpTimeLeft(link, now, isMod, isPremium)
+                              ? `🚀 Bump ready in ${bumpTimeLeft(link, now, isMod, isPremium)}`
                               : '🚀 Bump ready'}
                         </span>
                       )}
@@ -565,33 +571,45 @@ export default function MyLinks() {
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-medium text-violet-700 dark:text-violet-300">🚀 Bump to top of popular</p>
-                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">{isMod ? 'Staff: no cooldown' : '1 hour boost · once every 6h'}</p>
+                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">
+                          {isMod
+                            ? 'Staff: no cooldown'
+                            : isPremium
+                              ? '1h boost · can bump again 1h after it ends'
+                              : '1h boost · can bump again 3h after it ends'}
+                        </p>
                       </div>
                       <button
                         onClick={() => handleBump(link)}
-                        disabled={!isMod && link.bumpedAt && now - link.bumpedAt < BUMP_COOLDOWN_MS}
+                        disabled={!isMod && now < bumpReadyAt(link, isMod, isPremium)}
                         className="shrink-0 rounded-lg bg-violet-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {bumpLabel(link, now, isMod)}
+                        {bumpLabel(link, now, isMod, isPremium)}
                       </button>
                     </div>
-                    {(isPremium || isMod) && (
-                      <div className="mt-2 border-t border-violet-300/70 pt-2 dark:border-violet-400/20">
-                        <p className="mb-1.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">👑 Premium bump duration</p>
-                        <div className="flex gap-1.5">
-                          {[['30m', '30 minutes'], ['1h', '1 hour'], ['2h', '2 hours']].map(([value, label]) => (
+                    <div className="mt-2 border-t border-violet-300/70 pt-2 dark:border-violet-400/20">
+                      <p className="mb-1.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">Boost duration</p>
+                      <div className="flex gap-1.5">
+                        {[['30m', '30 minutes'], ['1h', '1 hour'], ['2h', '2 hours']].map(([value, label]) => {
+                          const locked = !(isPremium || isMod) && value !== '1h'
+                          return (
                             <button
                               key={value}
                               type="button"
-                              onClick={() => setBumpDuration(value)}
-                              className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${bumpDuration === value ? 'bg-violet-500 text-white' : 'bg-white/70 text-violet-700 hover:bg-violet-100 dark:bg-black/20 dark:text-violet-200 dark:hover:bg-violet-400/20'}`}
+                              onClick={() => { if (!locked) setBumpDuration(value) }}
+                              disabled={locked}
+                              title={locked ? 'Premium feature' : undefined}
+                              className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${bumpDuration === value && !locked ? 'bg-violet-500 text-white' : locked ? 'cursor-not-allowed bg-white/40 text-violet-400/60 line-through dark:bg-black/10 dark:text-violet-300/40' : 'bg-white/70 text-violet-700 hover:bg-violet-100 dark:bg-black/20 dark:text-violet-200 dark:hover:bg-violet-400/20'}`}
                             >
-                              {label}
+                              {locked ? `👑 ${label}` : label}
                             </button>
-                          ))}
-                        </div>
+                          )
+                        })}
                       </div>
-                    )}
+                      {!(isPremium || isMod) && (
+                        <p className="mt-1 text-[11px] text-violet-600/70 dark:text-violet-300/60">30 minutes and 2 hours are premium — free bumps boost for 1 hour.</p>
+                      )}
+                    </div>
                   </div>
                   <div className="mt-4 flex gap-2">
                     <button
