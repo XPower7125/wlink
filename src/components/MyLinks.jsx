@@ -502,7 +502,7 @@ export default function MyLinks() {
                         </span>
                       )}
                       {link.bumpedAt != null && (
-                        <span className="rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300">
+                        <span className="rounded-full border border-sky-300 bg-sky-50 px-2.5 py-0.5 text-xs font-medium text-sky-700 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-300">
                           {bumpBoostTimeLeft(link, now)
                             ? `🚀 Boosted · ${bumpBoostTimeLeft(link, now)} remaining`
                             : bumpTimeLeft(link, now, isMod, isPremium)
@@ -567,11 +567,11 @@ export default function MyLinks() {
                       <p className="text-[11px] text-amber-700/70 dark:text-amber-300/70">Upgrade to pin links for 30m–6h. Premium required.</p>
                     </div>
                   )}
-                  <div className="mt-3 rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 dark:border-violet-400/30 dark:bg-violet-400/10">
+                  <div className="mt-3 rounded-xl border border-sky-300 bg-sky-50 px-3 py-2 dark:border-sky-400/30 dark:bg-sky-400/10">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-xs font-medium text-violet-700 dark:text-violet-300">🚀 Bump to top of popular</p>
-                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">
+                        <p className="text-xs font-medium text-sky-700 dark:text-sky-300">🚀 Bump to top of popular</p>
+                        <p className="text-[11px] text-sky-600/70 dark:text-sky-300/60">
                           {isMod
                             ? 'Staff: no cooldown'
                             : isPremium
@@ -587,8 +587,8 @@ export default function MyLinks() {
                         {bumpLabel(link, now, isMod, isPremium)}
                       </button>
                     </div>
-                    <div className="mt-2 border-t border-violet-300/70 pt-2 dark:border-violet-400/20">
-                      <p className="mb-1.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">Boost duration</p>
+                    <div className="mt-2 border-t border-sky-300/70 pt-2 dark:border-sky-400/20">
+                      <p className="mb-1.5 text-[11px] font-medium text-sky-700 dark:text-sky-300">Boost duration</p>
                       <div className="flex gap-1.5">
                         {[['30m', '30 minutes'], ['1h', '1 hour'], ['2h', '2 hours']].map(([value, label]) => {
                           const locked = !(isPremium || isMod) && value !== '1h'
@@ -599,7 +599,7 @@ export default function MyLinks() {
                               onClick={() => { if (!locked) setBumpDuration(value) }}
                               disabled={locked}
                               title={locked ? 'Premium feature' : undefined}
-                              className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${bumpDuration === value && !locked ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sm shadow-sky-500/30' : locked ? 'cursor-not-allowed bg-white/40 text-violet-400/60 line-through dark:bg-black/10 dark:text-violet-300/40' : 'bg-white/70 text-violet-700 hover:bg-violet-100 dark:bg-black/20 dark:text-violet-200 dark:hover:bg-violet-400/20'}`}
+                              className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${bumpDuration === value && !locked ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sm shadow-sky-500/30' : locked ? 'cursor-not-allowed bg-white/40 text-sky-400/60 line-through dark:bg-black/10 dark:text-sky-300/40' : 'bg-white/70 text-sky-700 hover:bg-sky-100 dark:bg-black/20 dark:text-sky-200 dark:hover:bg-sky-400/20'}`}
                             >
                               {locked ? `👑 ${label}` : label}
                             </button>
@@ -607,7 +607,7 @@ export default function MyLinks() {
                         })}
                       </div>
                       {!(isPremium || isMod) && (
-                        <p className="mt-1 text-[11px] text-violet-600/70 dark:text-violet-300/60">30 minutes and 2 hours are premium — free bumps boost for 1 hour.</p>
+                        <p className="mt-1 text-[11px] text-sky-600/70 dark:text-sky-300/60">30 minutes and 2 hours are premium — free bumps boost for 1 hour.</p>
                       )}
                     </div>
                   </div>

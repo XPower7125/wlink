@@ -144,7 +144,7 @@ export default function AllLinks() {
                     </span>
                   )}
                   {link.bumpedAt != null && (
-                    <span className={`absolute right-3 rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300 ${isPinned(link) ? "top-10" : "top-3"}`}>
+                    <span className={`absolute right-3 rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-300 ${isPinned(link) ? "top-10" : "top-3"}`}>
                       🚀 {bumpBoostLeft(link, now) ? `Boosted · ${bumpBoostLeft(link, now)} left` : "Bumped"}
                     </span>
                   )}
