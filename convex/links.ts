@@ -243,13 +243,25 @@ export const recordClick = mutation({
   },
 });
 
+function sortPinnedFirst(a: any, b: any, now: number): number {
+  const aPinned = isPinned(a, now) ? 1 : 0;
+  const bPinned = isPinned(b, now) ? 1 : 0;
+  if (aPinned !== bPinned) return bPinned - aPinned;
+  return 0;
+}
+
 export const listPublic = query({
   args: {},
   handler: async (ctx) => {
+    const now = Date.now();
     const links = await ctx.db.query("links").collect();
     return links
       .filter((l) => l.public && !l.passwordHash)
-      .sort((a, b) => b.clicks - a.clicks)
+      .sort((a, b) => {
+        const pinCmp = sortPinnedFirst(a, b, now);
+        if (pinCmp !== 0) return pinCmp;
+        return b.clicks - a.clicks;
+      })
       .slice(0, 6)
       .map(({ passwordHash, ...safe }) => safe);
   },
@@ -258,10 +270,15 @@ export const listPublic = query({
 export const listAllPublic = query({
   args: {},
   handler: async (ctx) => {
+    const now = Date.now();
     const links = await ctx.db.query("links").collect();
     return links
       .filter((l) => l.public && !l.passwordHash)
-      .sort((a, b) => b.clicks - a.clicks)
+      .sort((a, b) => {
+        const pinCmp = sortPinnedFirst(a, b, now);
+        if (pinCmp !== 0) return pinCmp;
+        return b.clicks - a.clicks;
+      })
       .map(({ passwordHash, ...safe }) => safe);
   },
 });
@@ -271,12 +288,17 @@ export const listMine = query({
   handler: async (ctx) => {
     const user = await authComponent.getAuthUser(ctx);
     if (!user) return [];
+    const now = Date.now();
     const links = await ctx.db
       .query("links")
       .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
       .collect();
     return links
-      .sort((a, b) => b._creationTime - a._creationTime)
+      .sort((a, b) => {
+        const pinCmp = sortPinnedFirst(a, b, now);
+        if (pinCmp !== 0) return pinCmp;
+        return b._creationTime - a._creationTime;
+      })
       .map(({ passwordHash, ...safe }) => ({
         ...safe,
         requiresPassword: Boolean(passwordHash),
@@ -522,6 +544,155 @@ export const saveRedirectText = action({
       id,
       text: clean,
     });
+  },
+});
+
+// ── pinning (premium + staff) ─────────────────────────────────────────────
+
+const PIN_DURATIONS: Record<string, number> = {
+  "30m": 30 * 60 * 1000,
+  "1h": 60 * 60 * 1000,
+  "2h": 2 * 60 * 60 * 1000,
+  "3h": 3 * 60 * 60 * 1000,
+  "6h": 6 * 60 * 60 * 1000,
+};
+const PIN_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+function isPinned(doc: any, now: number): boolean {
+  if (doc.pinnedPermanent) return true;
+  return doc.pinnedUntil != null && doc.pinnedUntil > now;
+}
+
+export const getLinksByOwnerInternal = internalQuery({
+  args: { ownerId: v.string() },
+  handler: async (ctx, { ownerId }) =>
+    ctx.db
+      .query("links")
+      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+      .collect(),
+});
+
+export const getPinStateInternal = internalQuery({
+  args: { userId: v.string() },
+  handler: async (ctx, { userId }) =>
+    ctx.db
+      .query("pinStates")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique(),
+});
+
+export const setPinInternal = internalMutation({
+  args: {
+    id: v.id("links"),
+    pinnedAt: v.number(),
+    pinnedUntil: v.optional(v.number()),
+    pinnedPermanent: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { id, pinnedAt, pinnedUntil, pinnedPermanent }) => {
+    await ctx.db.patch(id, { pinnedAt, pinnedUntil, pinnedPermanent });
+  },
+});
+
+export const clearPinInternal = internalMutation({
+  args: { id: v.id("links") },
+  handler: async (ctx, { id }) => {
+    await ctx.db.patch(id, {
+      pinnedAt: undefined,
+      pinnedUntil: undefined,
+      pinnedPermanent: undefined,
+    });
+  },
+});
+
+export const setPinStateInternal = internalMutation({
+  args: { userId: v.string(), lastUnpinnedAt: v.number() },
+  handler: async (ctx, { userId, lastUnpinnedAt }) => {
+    const existing = await ctx.db
+      .query("pinStates")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    if (existing) await ctx.db.patch(existing._id, { lastUnpinnedAt });
+    else await ctx.db.insert("pinStates", { userId, lastUnpinnedAt });
+  },
+});
+
+export const expirePin = internalMutation({
+  args: { id: v.id("links") },
+  handler: async (ctx, { id }) => {
+    const link = await ctx.db.get(id);
+    if (!link) return;
+    if (link.pinnedPermanent) return;
+    if (link.pinnedUntil == null) return;
+    if (link.pinnedUntil > Date.now()) return;
+    await ctx.db.patch(id, {
+      pinnedAt: undefined,
+      pinnedUntil: undefined,
+      pinnedPermanent: undefined,
+    });
+    if (link.ownerId) {
+      const existing = await ctx.db
+        .query("pinStates")
+        .withIndex("by_userId", (q) => q.eq("userId", link.ownerId))
+        .unique();
+      if (existing) await ctx.db.patch(existing._id, { lastUnpinnedAt: Date.now() });
+      else await ctx.db.insert("pinStates", { userId: link.ownerId, lastUnpinnedAt: Date.now() });
+    }
+  },
+});
+
+export const pinLink = action({
+  args: { id: v.id("links"), duration: v.string() },
+  handler: async (ctx, { id, duration }) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) fail("You must be signed in to pin links.");
+    const link = await ctx.runQuery(internal.links.getLinkById, { id });
+    if (!link) fail("Link not found.");
+    const isStaff = await hasModRole(ctx, user._id);
+    const isPremium = isStaff || (await hasPremiumRole(ctx, user._id));
+    if (!isPremium) fail("Pinning is a premium feature.");
+    if (link.ownerId !== user._id && !isStaff) fail("You can only pin your own links.");
+    const now = Date.now();
+    if (isPinned(link, now)) fail("Link is already pinned.");
+    const isPermanent = duration === "permanent";
+    if (isPermanent && !isStaff) fail("Permanent pins are staff only.");
+    const durationMs = PIN_DURATIONS[duration];
+    if (!isPermanent && durationMs == null) fail("Invalid pin duration.");
+    // One active pin at a time (premium only)
+    if (!isStaff) {
+      const owned = await ctx.runQuery(internal.links.getLinksByOwnerInternal, { ownerId: user._id });
+      const active = owned.find((d) => isPinned(d, now));
+      if (active) fail("You already have a pinned link. Unpin it first.");
+      const pinState = await ctx.runQuery(internal.links.getPinStateInternal, { userId: user._id });
+      if (pinState?.lastUnpinnedAt && now - pinState.lastUnpinnedAt < PIN_COOLDOWN_MS) {
+        const waitMs = PIN_COOLDOWN_MS - (now - pinState.lastUnpinnedAt);
+        const mins = Math.ceil(waitMs / 60000);
+        fail(`Pin cooldown: wait ${mins} more minute(s) before pinning again.`);
+      }
+    }
+    const pinnedAt = now;
+    const pinnedUntil = isPermanent ? undefined : now + durationMs;
+    const pinnedPermanent = isPermanent ? true : undefined;
+    await ctx.runMutation(internal.links.setPinInternal, { id, pinnedAt, pinnedUntil, pinnedPermanent });
+    if (!isPermanent) {
+      await ctx.scheduler.runAfter(durationMs, internal.links.expirePin, { id });
+    }
+  },
+});
+
+export const unpinLink = action({
+  args: { id: v.id("links") },
+  handler: async (ctx, { id }) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) fail("You must be signed in.");
+    const link = await ctx.runQuery(internal.links.getLinkById, { id });
+    if (!link) fail("Link not found.");
+    const isStaff = await hasModRole(ctx, user._id);
+    if (link.ownerId !== user._id && !isStaff) fail("You can only unpin your own links.");
+    if (!isPinned(link, Date.now())) fail("Link is not pinned.");
+    await ctx.runMutation(internal.links.clearPinInternal, { id });
+    if (!isStaff) {
+      await ctx.runMutation(internal.links.setPinStateInternal, { userId: link.ownerId!, lastUnpinnedAt: Date.now() });
+    }
   },
 });
 

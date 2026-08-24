@@ -6,6 +6,10 @@ function formatClicks(n) {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K clicks`
   return `${n} clicks`
 }
+function isPinned(link) {
+  if (link.pinnedPermanent) return true;
+  return link.pinnedUntil != null && link.pinnedUntil > Date.now();
+}
 
 export default function PopularLinks() {
   const links = useQuery(api.links.listPublic) ?? []
@@ -52,12 +56,17 @@ export default function PopularLinks() {
                 className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-500/10 dark:border-white/10 dark:bg-slate-900/60 dark:hover:shadow-xl dark:hover:shadow-sky-500/10"
               >
                 <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.12),transparent_70%)] opacity-0 transition group-hover:opacity-100" />
+                {isPinned(link) && (
+                  <span className="absolute right-3 top-3 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
+                    📌 Pinned{link.pinnedPermanent ? " • permanent" : ""}
+                  </span>
+                )}
                 <div className="flex items-start gap-4">
                   <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/20 to-blue-600/20 text-xl ring-1 ring-slate-200 dark:ring-white/10">
                     {link.icon}
                   </span>
                   <div className="min-w-0">
-                    <h3 className="truncate font-semibold text-slate-900 dark:text-slate-100">{link.title}</h3>
+                    <h3 className="truncate pr-16 font-semibold text-slate-900 dark:text-slate-100">{link.title}</h3>
                     <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{link.description}</p>
                   </div>
                 </div>

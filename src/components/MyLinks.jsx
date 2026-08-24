@@ -11,6 +11,24 @@ function formatClicks(n) {
   return `${n} clicks`
 }
 
+function isPinned(link) {
+  if (link.pinnedPermanent) return true;
+  return link.pinnedUntil != null && link.pinnedUntil > Date.now();
+}
+function pinLabel(link) {
+  if (link.pinnedPermanent) return "📌 Pinned • permanent";
+  if (link.pinnedUntil) {
+    const diff = link.pinnedUntil - Date.now();
+    if (diff <= 0) return "📌 Expired";
+    const mins = Math.ceil(diff / 60000);
+    if (mins < 60) return `📌 Pinned • ${mins}m left`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `📌 Pinned • ${h}h ${m}m left`;
+  }
+  return "📌 Pinned";
+}
+
 const inputCls =
   'w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500'
 
@@ -181,6 +199,8 @@ export default function MyLinks() {
   const removeLink = useMutation(api.links.removeLink)
   const myRolesAction = useAction(api.links.myRoles)
   const loadAll = useAction(api.links.listAllAsModerator)
+  const pinLinkAction = useAction(api.links.pinLink)
+  const unpinLinkAction = useAction(api.links.unpinLink)
   const [editingId, setEditingId] = useState(null)
   const [confirmId, setConfirmId] = useState(null)
   const [adminConfirmId, setAdminConfirmId] = useState(null)
@@ -228,6 +248,23 @@ export default function MyLinks() {
     setConfirmId(null)
     setAdminConfirmId(null)
     if (isMod) loadAll().then(setAllLinks).catch(() => {})
+  }
+
+  const handlePin = async (id, duration) => {
+    try {
+      await pinLinkAction({ id, duration })
+      setError('')
+    } catch (err) {
+      setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not pin link.')
+    }
+  }
+  const handleUnpin = async (id) => {
+    try {
+      await unpinLinkAction({ id })
+      setError('')
+    } catch (err) {
+      setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not unpin link.')
+    }
   }
 
   const refreshAll = () => {
@@ -293,9 +330,59 @@ export default function MyLinks() {
                           private
                         </span>
                       )}
+                      {isPinned(link) && (
+                        <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
+                          {pinLabel(link)}
+                        </span>
+                      )}
                     </div>
                     <span className="font-mono text-xs text-slate-400 dark:text-slate-500">/{link.slug}</span>
                   </div>
+                  {/* Pin controls */}
+                  {isPinned(link) ? (
+                    <div className="mt-3 flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-400/30 dark:bg-amber-400/10">
+                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{pinLabel(link)}</span>
+                      <button
+                        onClick={() => handleUnpin(link._id)}
+                        className="rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-amber-600"
+                      >
+                        Unpin
+                      </button>
+                    </div>
+                  ) : isPremium || isMod ? (
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/50 p-2.5 dark:border-amber-400/20 dark:bg-amber-400/5">
+                      <p className="mb-1.5 flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                        <span>👑</span> Pin link
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {["30m", "1h", "2h", "3h", "6h"].map((d) => (
+                          <button
+                            key={d}
+                            onClick={() => handlePin(link._id, d)}
+                            className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-100 dark:border-amber-400/30 dark:bg-slate-900 dark:text-amber-300 dark:hover:bg-amber-400/10"
+                          >
+                            {d}
+                          </button>
+                        ))}
+                        {isMod && (
+                          <button
+                            onClick={() => handlePin(link._id, "permanent")}
+                            className="rounded-lg border border-amber-300 bg-white px-2 py-1 text-xs font-medium text-amber-700 transition hover:bg-amber-100 dark:border-amber-400/30 dark:bg-slate-900 dark:text-amber-300 dark:hover:bg-amber-400/10"
+                          >
+                            Permanent
+                          </button>
+                        )}
+                      </div>
+                      <p className="mt-1 text-[11px] text-amber-600/70 dark:text-amber-300/60">6h cooldown after unpin. Staff: no limits + permanent.</p>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-400/30 dark:bg-amber-400/10">
+                      <p className="flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                        <span>👑</span> Pin link — premium feature
+                      </p>
+                      <p className="text-[11px] text-amber-700/70 dark:text-amber-300/70">Upgrade to pin links for 30m–6h. Premium required.</p>
+                    </div>
+                  )}
                   <div className="mt-4 flex gap-2">
                     <button
                       onClick={() => { setEditingId(link._id); setConfirmId(null) }}

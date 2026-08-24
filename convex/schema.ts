@@ -21,7 +21,17 @@ export default defineSchema({
     public: v.boolean(),
     // Premium feature: custom text shown on the redirect page.
     redirectText: v.optional(v.string()),
+    // Pinning (premium + staff). pinnedUntil is ms epoch; pinnedPermanent for staff.
+    pinnedAt: v.optional(v.number()),
+    pinnedUntil: v.optional(v.number()),
+    pinnedPermanent: v.optional(v.boolean()),
   })
     .index("by_slug", ["slug"])
     .index("by_owner", ["ownerId"]),
+
+  // Tracks per-user pin cooldown (6h after unpin).
+  pinStates: defineTable({
+    userId: v.string(),
+    lastUnpinnedAt: v.number(),
+  }).index("by_userId", ["userId"]),
 });
