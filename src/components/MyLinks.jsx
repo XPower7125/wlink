@@ -348,7 +348,7 @@ export default function MyLinks() {
               ) : (
                 <div
                   key={link._id}
-                  className={`group relative overflow-hidden rounded-2xl border bg-white p-5 transition dark:bg-slate-900/60 ${isPinned(link) ? "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 hover:border-amber-400 dark:border-amber-400/40 dark:shadow-amber-400/15" : "border-slate-200 hover:border-sky-400/40 dark:border-white/10"}`}
+                  className={`group relative overflow-hidden rounded-2xl border bg-white p-5 transition dark:bg-slate-900/60 ${isPinned(link) ? (link.pinnedPermanent ? "border-blue-400 shadow-lg shadow-blue-500/25 ring-1 ring-blue-400/40 hover:border-blue-400 dark:border-blue-400/40 dark:shadow-blue-400/15" : "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 hover:border-amber-400 dark:border-amber-400/40 dark:shadow-amber-400/15") : "border-slate-200 hover:border-sky-400/40 dark:border-white/10"}`}
                 >
                   <div className="flex items-start gap-4">
                     <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/20 to-blue-600/20 text-xl ring-1 ring-slate-200 dark:ring-white/10">
@@ -377,20 +377,24 @@ export default function MyLinks() {
                         </span>
                       )}
                       {isPinned(link) && (
-                        <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
+                        <span
+                          className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${link.pinnedPermanent ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-300" : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"}`}
+                        >
                           {pinLabel(link)}
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-xs text-slate-400 dark:text-slate-500">/{link.slug}</span>
+                    <span className="font-mono text-xs lowercase text-slate-400 dark:text-slate-500">/{link.slug}</span>
                   </div>
                   {/* Pin controls */}
                   {isPinned(link) ? (
-                    <div className="mt-3 flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-400/30 dark:bg-amber-400/10">
-                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">{pinLabel(link)}</span>
+                    <div
+                      className={`mt-3 flex items-center justify-between rounded-xl border px-3 py-2 ${link.pinnedPermanent ? "border-blue-300 bg-blue-50 dark:border-blue-400/30 dark:bg-blue-400/10" : "border-amber-300 bg-amber-50 dark:border-amber-400/30 dark:bg-amber-400/10"}`}
+                    >
+                      <span className={`text-xs font-medium ${link.pinnedPermanent ? "text-blue-700 dark:text-blue-300" : "text-amber-700 dark:text-amber-300"}`}>{pinLabel(link)}</span>
                       <button
                         onClick={() => handleUnpin(link._id)}
-                        className="rounded-lg bg-amber-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-amber-600"
+                        className={`rounded-lg px-2.5 py-1 text-xs font-semibold text-white transition ${link.pinnedPermanent ? "bg-blue-500 hover:bg-blue-600" : "bg-amber-500 hover:bg-amber-600"}`}
                       >
                         Unpin
                       </button>
@@ -484,7 +488,7 @@ export default function MyLinks() {
                 {allLinks.map((link) => (
                   <div
                     key={link._id}
-                    className={`rounded-2xl border bg-white p-5 dark:bg-slate-900/60 ${isPinned(link) ? "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 dark:border-amber-400/40 dark:shadow-amber-400/15" : "border-slate-200 dark:border-white/10"}`}
+                    className={`rounded-2xl border bg-white p-5 dark:bg-slate-900/60 ${isPinned(link) ? (link.pinnedPermanent ? "border-blue-400 shadow-lg shadow-blue-500/25 ring-1 ring-blue-400/40 dark:border-blue-400/40 dark:shadow-blue-400/15" : "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 dark:border-amber-400/40 dark:shadow-amber-400/15") : "border-slate-200 dark:border-white/10"}`}
                   >
                     <div className="flex items-start gap-3">
                       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/20 to-blue-600/20 text-lg ring-1 ring-slate-200 dark:ring-white/10">
@@ -495,7 +499,7 @@ export default function MyLinks() {
                           {isPinned(link) ? "📌 " : ""}
                           {link.title}
                         </h4>
-                        <p className="truncate font-mono text-xs text-slate-400 dark:text-slate-500">/{link.slug}</p>
+                        <p className="truncate font-mono text-xs lowercase text-slate-400 dark:text-slate-500">/{link.slug}</p>
                       </div>
                     </div>
                     <div className="mt-3 flex items-center justify-between">

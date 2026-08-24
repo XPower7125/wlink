@@ -72,7 +72,7 @@ export default function AllLinks() {
               return (
               <div
                 key={link._id}
-                className={`group relative overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-1 dark:bg-slate-900/60 ${isPinned(link) ? "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 hover:border-amber-400 hover:shadow-amber-500/30 dark:border-amber-400/40 dark:shadow-amber-400/15" : "border-slate-200 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-500/10 dark:border-white/10 dark:hover:shadow-xl dark:hover:shadow-sky-500/10"}`}
+                className={`group relative overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-1 dark:bg-slate-900/60 ${isPinned(link) ? (link.pinnedPermanent ? "border-blue-400 shadow-lg shadow-blue-500/25 ring-1 ring-blue-400/40 hover:border-blue-400 hover:shadow-blue-500/30 dark:border-blue-400/40 dark:shadow-blue-400/15" : "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 hover:border-amber-400 hover:shadow-amber-500/30 dark:border-amber-400/40 dark:shadow-amber-400/15") : "border-slate-200 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-500/10 dark:border-white/10 dark:hover:shadow-xl dark:hover:shadow-sky-500/10"}`}
               >
                 {isMod && (
                   adminConfirmId === link._id ? (
@@ -108,7 +108,7 @@ export default function AllLinks() {
                 >
                   <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.12),transparent_70%)] opacity-0 transition group-hover:opacity-100" />
                   {isPinned(link) && (
-                    <span className="absolute right-3 top-3 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
+                    <span className={`absolute right-3 top-3 rounded-full border px-2 py-0.5 text-[11px] font-medium ${link.pinnedPermanent ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-300" : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"}`}>
                       📌 Pinned{link.pinnedPermanent ? " • permanent" : ""}
                     </span>
                   )}
@@ -131,7 +131,7 @@ export default function AllLinks() {
                     <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
                       {formatClicks(link.clicks)}
                     </span>
-                    <span className="font-mono text-xs text-slate-400 transition group-hover:text-sky-600 dark:text-slate-500 dark:group-hover:text-sky-300">
+                    <span className="font-mono text-xs lowercase text-slate-400 transition group-hover:text-sky-600 dark:text-slate-500 dark:group-hover:text-sky-300">
                       /{link.slug}
                     </span>
                   </div>

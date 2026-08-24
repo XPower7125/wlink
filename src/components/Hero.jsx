@@ -169,10 +169,10 @@ export default function Hero() {
             />
             <input
               value={customAlias}
-              onChange={(e) => setCustomAlias(e.target.value)}
+              onChange={(e) => setCustomAlias(e.target.value.toLowerCase())}
               placeholder="Custom alias (optional) e.g. myprofile"
               maxLength={40}
-              className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
+              className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm lowercase text-slate-900 outline-none transition placeholder:text-slate-400 placeholder:normal-case focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <input

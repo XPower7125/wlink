@@ -198,9 +198,10 @@ export const createLink = mutation({
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
+    const slug = String(args.slug || "").toLowerCase();
     const link = await ctx.db
       .query("links")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
     if (!link) return null;
     const { passwordHash, ...safe } = link;
@@ -218,9 +219,10 @@ export const getBySlug = query({
 export const unlock = query({
   args: { slug: v.string(), password: v.string() },
   handler: async (ctx, args) => {
+    const slug = String(args.slug || "").toLowerCase();
     const link = await ctx.db
       .query("links")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
       .unique();
     if (!link) return { url: null };
     if (!link.passwordHash) return { url: link.url };
@@ -246,9 +248,10 @@ export const incrementClicks = internalMutation({
 export const recordClick = mutation({
   args: { slug: v.string() },
   handler: async (ctx, { slug }) => {
+    const normSlug = String(slug || "").toLowerCase();
     const link = await ctx.db
       .query("links")
-      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .withIndex("by_slug", (q) => q.eq("slug", normSlug))
       .unique();
     if (!link) return;
     await ctx.db.patch(link._id, { clicks: link.clicks + 1 });
