@@ -233,37 +233,30 @@ export default function Hero() {
               <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
                 <span>⏳</span> Link expiry
               </label>
-              {isPremium ? (
-                <>
-                  <select
-                    value={expiresIn}
-                    onChange={(e) => setExpiresIn(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-violet-400/50 focus:ring-2 focus:ring-violet-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100"
-                  >
-                    <option value="">Never expires</option>
-                    {["30m", "1h", "2h", "3h", "6h", "12h", "1d", "2d", "7d"].map((d) => (
-                      <option key={d} value={d}>
-                        Expires after {d}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-violet-500 dark:text-violet-300">
-                    Early access: the link stops working and disappears from listings after the chosen time.
-                  </p>
-                </>
-              ) : (
-                <>
-                  <select
-                    disabled
-                    className="w-full cursor-not-allowed rounded-xl border border-violet-300 bg-violet-50 px-4 py-3 text-sm text-violet-700/70 outline-none dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300/70"
-                  >
-                    <option>Expiring links — premium feature</option>
-                  </select>
-                  <p className="mt-1 text-xs text-violet-600 dark:text-violet-300/80">
-                    Early access — upgrade to make links that expire automatically.
-                  </p>
-                </>
-              )}
+              <select
+                value={expiresIn}
+                onChange={(e) => {
+                  const v = e.target.value
+                  if (v && !["1h", "2h", "3h", "6h"].includes(v) && !isPremium) return
+                  setExpiresIn(v)
+                }}
+                className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100"
+              >
+                <option value="">Never expires</option>
+                {["1h", "2h", "3h", "6h"].map((d) => (
+                  <option key={d} value={d}>
+                    Expires after {d}
+                  </option>
+                ))}
+                {["30m", "12h", "1d", "2d", "7d"].map((d) => (
+                  <option key={d} value={d} disabled={!isPremium}>
+                    {isPremium ? `Expires after ${d}` : `👑 Expires after ${d} (premium)`}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                1h–6h free · other durations premium. Expired links stop working and disappear from listings.
+              </p>
             </div>
 
             <div>

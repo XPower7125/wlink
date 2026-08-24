@@ -26,7 +26,7 @@ const MAX_LEN = {
 const RATE_LIMIT_PER_HOUR = 10;
 const PREMIUM_RATE_LIMIT_PER_HOUR = 25;
 
-// ── premium early access: expiring links ─────────────────────────────────
+// ── expiring links: 1h–6h free for everyone, the rest premium ────────────
 export const EXPIRY_DURATIONS_MS: Record<string, number> = {
   "30m": 30 * 60 * 1000,
   "1h": 60 * 60 * 1000,
@@ -37,6 +37,13 @@ export const EXPIRY_DURATIONS_MS: Record<string, number> = {
   "1d": 24 * 60 * 60 * 1000,
   "2d": 2 * 24 * 60 * 60 * 1000,
   "7d": 7 * 24 * 60 * 60 * 1000,
+};
+
+const FREE_EXPIRY_DURATIONS: Record<string, true> = {
+  "1h": true,
+  "2h": true,
+  "3h": true,
+  "6h": true,
 };
 
 function isExpired(link: any, now = Date.now()): boolean {
@@ -166,18 +173,6 @@ export const createLink = mutation({
     }
     const passwordHash = password ? await sha256Hex(password) : undefined;
 
-    // Expiring links (premium early access). Staff exempt from the gate.
-    let expiresAt: number | undefined;
-    if (args.expiresIn !== undefined && args.expiresIn !== "") {
-      const ms = EXPIRY_DURATIONS_MS[String(args.expiresIn)];
-      if (!ms) fail("Invalid expiry duration.");
-      const staffOrPremium = isStaffCached || isPremiumCached;
-      if (!staffOrPremium) {
-        fail("Expiring links are a premium feature (early access).");
-      }
-      expiresAt = Date.now() + ms;
-    }
-
     // ── FIX V1b: rate limit — max creations per user per rolling hour.
     // Staff have no limit; premium get 25/hr, others 10/hr. Roles are cached
     // in userRoles (updated by myRoles action) because mutations can't fetch Discord.
@@ -187,6 +182,20 @@ export const createLink = mutation({
       .unique();
     const isStaffCached = rolesDoc?.isStaff ?? false;
     const isPremiumCached = rolesDoc?.isPremium ?? false;
+
+    // Expiring links: 1h–6h free, the rest premium. Staff exempt from gates.
+    let expiresAt: number | undefined;
+    if (args.expiresIn !== undefined && args.expiresIn !== "") {
+      const key = String(args.expiresIn);
+      const ms = EXPIRY_DURATIONS_MS[key];
+      if (!ms) fail("Invalid expiry duration.");
+      const freeExpiry = key in FREE_EXPIRY_DURATIONS;
+      if (!freeExpiry && !(isStaffCached || isPremiumCached)) {
+        fail("That expiry duration is a premium feature.");
+      }
+      expiresAt = Date.now() + ms;
+    }
+
     if (!isStaffCached) {
       const limit = isPremiumCached ? PREMIUM_RATE_LIMIT_PER_HOUR : RATE_LIMIT_PER_HOUR;
       const oneHourAgo = Date.now() - 60 * 60 * 1000;

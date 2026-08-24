@@ -582,7 +582,7 @@ export default function MyLinks() {
                       <button
                         onClick={() => handleBump(link)}
                         disabled={!isMod && now < bumpReadyAt(link, isMod, isPremium)}
-                        className="shrink-0 rounded-lg bg-violet-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="shrink-0 rounded-lg bg-gradient-to-r from-sky-500 to-blue-600 px-2.5 py-1 text-xs font-semibold text-white shadow-sm shadow-sky-500/30 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60 disabled:saturate-50"
                       >
                         {bumpLabel(link, now, isMod, isPremium)}
                       </button>
@@ -599,7 +599,7 @@ export default function MyLinks() {
                               onClick={() => { if (!locked) setBumpDuration(value) }}
                               disabled={locked}
                               title={locked ? 'Premium feature' : undefined}
-                              className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${bumpDuration === value && !locked ? 'bg-violet-500 text-white' : locked ? 'cursor-not-allowed bg-white/40 text-violet-400/60 line-through dark:bg-black/10 dark:text-violet-300/40' : 'bg-white/70 text-violet-700 hover:bg-violet-100 dark:bg-black/20 dark:text-violet-200 dark:hover:bg-violet-400/20'}`}
+                              className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${bumpDuration === value && !locked ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-sm shadow-sky-500/30' : locked ? 'cursor-not-allowed bg-white/40 text-violet-400/60 line-through dark:bg-black/10 dark:text-violet-300/40' : 'bg-white/70 text-violet-700 hover:bg-violet-100 dark:bg-black/20 dark:text-violet-200 dark:hover:bg-violet-400/20'}`}
                             >
                               {locked ? `👑 ${label}` : label}
                             </button>
