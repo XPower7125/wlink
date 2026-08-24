@@ -56,11 +56,18 @@ export default function PopularLinks() {
                 className={`group relative overflow-hidden rounded-2xl border bg-white p-5 transition hover:-translate-y-1 dark:bg-slate-900/60 ${isPinned(link) ? (link.pinnedPermanent ? "border-blue-400 shadow-lg shadow-blue-500/25 ring-1 ring-blue-400/40 hover:border-blue-400 hover:shadow-blue-500/30 dark:border-blue-400/40 dark:shadow-blue-400/15" : "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 hover:border-amber-400 hover:shadow-amber-500/30 dark:border-amber-400/40 dark:shadow-amber-400/15") : "border-slate-200 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-500/10 dark:border-white/10 dark:hover:shadow-xl dark:hover:shadow-sky-500/10"}`}
               >
                 <div className="pointer-events-none absolute inset-x-0 -top-24 h-40 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.12),transparent_70%)] opacity-0 transition group-hover:opacity-100" />
-                {isPinned(link) && (
-                  <span className={`absolute right-3 top-3 rounded-full border px-2 py-0.5 text-[11px] font-medium ${link.pinnedPermanent ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-300" : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"}`}>
-                    📌 Pinned{link.pinnedPermanent ? " • permanent" : ""}
-                  </span>
-                )}
+                <div className="absolute right-3 top-3 flex flex-col items-end gap-1">
+                  {isPinned(link) && (
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${link.pinnedPermanent ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-400/30 dark:bg-blue-400/10 dark:text-blue-300" : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300"}`}>
+                      📌 Pinned{link.pinnedPermanent ? " • permanent" : ""}
+                    </span>
+                  )}
+                  {link.bumpedAt != null && (
+                    <span className="rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300">
+                      🚀 Bumped
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-start gap-4">
                   <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/20 to-blue-600/20 text-xl ring-1 ring-slate-200 dark:ring-white/10">
                     {link.icon}
