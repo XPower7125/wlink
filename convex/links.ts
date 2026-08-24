@@ -24,6 +24,7 @@ const MAX_LEN = {
 };
 
 const RATE_LIMIT_PER_HOUR = 10;
+const PREMIUM_RATE_LIMIT_PER_HOUR = 25;
 
 // ── moderator config ─────────────────────────────────────────────────────
 // Members of this Discord guild holding these roles get special powers.
@@ -147,14 +148,25 @@ export const createLink = mutation({
     const passwordHash = password ? await sha256Hex(password) : undefined;
 
     // ── FIX V1b: rate limit — max creations per user per rolling hour.
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    const recent = await ctx.db
-      .query("links")
-      .filter((q) => q.eq(q.field("ownerId"), user._id))
-      .filter((q) => q.gt(q.field("_creationTime"), oneHourAgo))
-      .collect();
-    if (recent.length >= RATE_LIMIT_PER_HOUR) {
-      fail("Rate limit reached: max 10 links per hour.");
+    // Staff have no limit; premium get 25/hr, others 10/hr. Roles are cached
+    // in userRoles (updated by myRoles action) because mutations can't fetch Discord.
+    const rolesDoc = await ctx.db
+      .query("userRoles")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+    const isStaffCached = rolesDoc?.isStaff ?? false;
+    const isPremiumCached = rolesDoc?.isPremium ?? false;
+    if (!isStaffCached) {
+      const limit = isPremiumCached ? PREMIUM_RATE_LIMIT_PER_HOUR : RATE_LIMIT_PER_HOUR;
+      const oneHourAgo = Date.now() - 60 * 60 * 1000;
+      const recent = await ctx.db
+        .query("links")
+        .filter((q) => q.eq(q.field("ownerId"), user._id))
+        .filter((q) => q.gt(q.field("_creationTime"), oneHourAgo))
+        .collect();
+      if (recent.length >= limit) {
+        fail(`Rate limit reached: max ${limit} links per hour${isPremiumCached ? " (premium)" : ""}.`);
+      }
     }
 
     // ── FIX V1c: ownership-aware collision check against ALL links, so an
@@ -472,6 +484,17 @@ export const myRoles = action({
       hasModRole(ctx, user._id),
       hasPremiumRole(ctx, user._id),
     ]);
+    // Cache for mutations (e.g. createLink rate limits) that can't fetch Discord live.
+    const existing = await ctx.db
+      .query("userRoles")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+    const now = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, { isStaff: moderator, isPremium: premium, updatedAt: now });
+    } else {
+      await ctx.db.insert("userRoles", { userId: user._id, isStaff: moderator, isPremium: premium, updatedAt: now });
+    }
     return { moderator, premium };
   },
 });

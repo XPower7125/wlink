@@ -34,4 +34,12 @@ export default defineSchema({
     userId: v.string(),
     lastUnpinnedAt: v.number(),
   }).index("by_userId", ["userId"]),
+
+  // Cached Discord roles for mutations that can't fetch live (e.g. rate limits).
+  userRoles: defineTable({
+    userId: v.string(),
+    isPremium: v.boolean(),
+    isStaff: v.boolean(),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
 });
