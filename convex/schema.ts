@@ -21,6 +21,8 @@ export default defineSchema({
     public: v.boolean(),
     // Premium feature: custom text shown on the redirect page.
     redirectText: v.optional(v.string()),
+    // Premium feature: custom title text color (hex) shown in public listings.
+    textColor: v.optional(v.string()),
     // Pinning (premium + staff). pinnedUntil is ms epoch; pinnedPermanent for staff.
     pinnedAt: v.optional(v.number()),
     pinnedUntil: v.optional(v.number()),

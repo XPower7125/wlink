@@ -35,6 +35,7 @@ const inputCls =
 function EditForm({ link, onDone, premium }) {
   const updateLink = useMutation(api.links.updateLink)
   const saveRedirectText = useAction(api.links.saveRedirectText)
+  const saveTextColor = useAction(api.links.saveTextColor)
   const [url, setUrl] = useState(link.url ?? '')
   const [title, setTitle] = useState(link.title)
   const [description, setDescription] = useState(link.description)
@@ -45,6 +46,7 @@ function EditForm({ link, onDone, premium }) {
   const [removePassword, setRemovePassword] = useState(false)
   const [publicListing, setPublicListing] = useState(link.public)
   const [redirectText, setRedirectText] = useState(link.redirectText ?? '')
+  const [textColor, setTextColor] = useState(link.textColor ?? '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -78,6 +80,7 @@ function EditForm({ link, onDone, premium }) {
       })
       if (premium) {
         await saveRedirectText({ id: link._id, text: redirectText })
+        await saveTextColor({ id: link._id, color: textColor })
       }
       onDone()
     } catch (err) {
@@ -168,6 +171,43 @@ function EditForm({ link, onDone, premium }) {
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-300/80">
                 Premium feature — upgrade to customize the redirect message.
               </p>
+            </>
+          )}
+        </div>
+        <div>
+          <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+            <span>👑</span> Custom title color
+          </label>
+          {premium ? (
+            <>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={textColor || '#38bdf8'}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  className="size-8 cursor-pointer rounded-lg border border-slate-200 bg-transparent p-0 dark:border-white/10 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0"
+                />
+                <input
+                  value={textColor}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  placeholder="#38bdf8 (leave empty for default)"
+                  className={inputCls + ' flex-1'}
+                />
+                {textColor && (
+                  <button type="button" onClick={() => setTextColor('')} className="text-xs text-slate-500 dark:text-slate-400">
+                    Clear
+                  </button>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Premium: custom color for the title in public listings.</p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-400/30 dark:bg-amber-400/10">
+                <span className="size-6 rounded bg-amber-200 dark:bg-amber-400/20" />
+                <span className="text-sm text-amber-700/70 dark:text-amber-300/70">#38bdf8</span>
+              </div>
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-300/80">Premium feature — upgrade to customize title colors.</p>
             </>
           )}
         </div>
@@ -315,7 +355,12 @@ export default function MyLinks() {
                       {link.icon}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="truncate font-semibold text-slate-900 dark:text-slate-100">{link.title}</h3>
+                      <h3
+                        className="truncate font-semibold text-slate-900 dark:text-slate-100"
+                        style={link.textColor ? { color: link.textColor } : undefined}
+                      >
+                        {link.title}
+                      </h3>
                       <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{link.description}</p>
                     </div>
                   </div>
@@ -445,7 +490,9 @@ export default function MyLinks() {
                         {link.icon}
                       </span>
                       <div className="min-w-0">
-                        <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100">{link.title}</h4>
+                        <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100" style={link.textColor ? { color: link.textColor } : undefined}>
+                          {link.title}
+                        </h4>
                         <p className="truncate font-mono text-xs text-slate-400 dark:text-slate-500">/{link.slug}</p>
                       </div>
                     </div>

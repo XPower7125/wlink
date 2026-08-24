@@ -545,6 +545,34 @@ export const setRedirectTextInternal = internalMutation({
   },
 });
 
+export const setTextColorInternal = internalMutation({
+  args: { id: v.id("links"), color: v.string() },
+  handler: async (ctx, { id, color }) => {
+    if (color === "") {
+      await ctx.db.patch(id, { textColor: undefined });
+    } else {
+      if (!HEX_COLOR_RE.test(color)) throw new Error("Invalid color.");
+      await ctx.db.patch(id, { textColor: color });
+    }
+  },
+});
+
+// Premium users may set the text color shown in public listings.
+export const saveTextColor = action({
+  args: { id: v.id("links"), color: v.string() },
+  handler: async (ctx, { id, color }) => {
+    const user = await authComponent.safeGetAuthUser(ctx);
+    if (!user) fail("You must be signed in to edit links.");
+    const link = await ctx.runQuery(internal.links.getLinkById, { id });
+    if (!link) fail("Link not found.");
+    if (link.ownerId !== user._id) fail("You can only edit your own links.");
+    if (!(await hasPremiumRole(ctx, user._id))) fail("Custom text color is a premium feature.");
+    const clean = String(color ?? "").trim();
+    if (clean !== "" && !HEX_COLOR_RE.test(clean)) fail("Color must be a hex value like #38bdf8.");
+    await ctx.runMutation(internal.links.setTextColorInternal, { id, color: clean });
+  },
+});
+
 // Premium users may set the text shown on the redirect page.
 export const saveRedirectText = action({
   args: { id: v.id("links"), text: v.string() },

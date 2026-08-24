@@ -117,7 +117,12 @@ export default function AllLinks() {
                       {link.icon}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="truncate pr-16 font-semibold text-slate-900 dark:text-slate-100">{link.title}</h3>
+                      <h3
+                        className="truncate pr-16 font-semibold text-slate-900 dark:text-slate-100"
+                        style={link.textColor ? { color: link.textColor } : undefined}
+                      >
+                        {link.title}
+                      </h3>
                       <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{link.description}</p>
                     </div>
                   </div>

@@ -16,6 +16,7 @@ export default function Hero() {
   const { data: session, isPending } = authClient.useSession()
   const createLink = useMutation(api.links.createLink)
   const saveRedirectText = useAction(api.links.saveRedirectText)
+  const saveTextColor = useAction(api.links.saveTextColor)
   const myRolesAction = useAction(api.links.myRoles)
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
@@ -27,6 +28,7 @@ export default function Hero() {
   const [customAlias, setCustomAlias] = useState('')
   const [publicListing, setPublicListing] = useState(false)
   const [redirectText, setRedirectText] = useState('')
+  const [textColor, setTextColor] = useState('')
   const [isPremium, setIsPremium] = useState(false)
   const [created, setCreated] = useState(null)
   const [error, setError] = useState('')
@@ -86,6 +88,13 @@ export default function Hero() {
         return setError(err?.message || 'Could not save redirect text.')
       }
     }
+    if (isPremium && textColor.trim()) {
+      try {
+        await saveTextColor({ id: newId, color: textColor.trim() })
+      } catch (err) {
+        return setError(err?.message || 'Could not save text color.')
+      }
+    }
     setCreated(`${window.location.origin}/${slug}`)
     setError('')
     setUrl('')
@@ -97,6 +106,7 @@ export default function Hero() {
     setImage('')
     setPassword('')
     setRedirectText('')
+    setTextColor('')
   }
 
   return (
@@ -244,6 +254,44 @@ export default function Hero() {
                   <p className="mt-1 text-xs text-amber-600 dark:text-amber-300/80">
                     Premium feature — upgrade to customize the redirect message.
                   </p>
+                </>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                <span>👑</span> Custom title color
+              </label>
+              {isPremium ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={textColor || '#38bdf8'}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className="size-8 cursor-pointer rounded-lg border border-slate-200 bg-transparent p-0 dark:border-white/10 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0"
+                    />
+                    <input
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      placeholder="#38bdf8 (leave empty for default)"
+                      className="flex-1 w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    />
+                    {textColor && (
+                      <button type="button" onClick={() => setTextColor('')} className="text-xs text-slate-500 dark:text-slate-400">
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Premium: custom color for the title in public listings.</p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 dark:border-amber-400/30 dark:bg-amber-400/10">
+                    <span className="size-6 rounded bg-amber-200 dark:bg-amber-400/20" />
+                    <span className="text-sm text-amber-700/70 dark:text-amber-300/70">#38bdf8</span>
+                  </div>
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-300/80">Premium feature — upgrade to customize title colors.</p>
                 </>
               )}
             </div>
