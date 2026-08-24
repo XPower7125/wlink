@@ -37,6 +37,12 @@ export default function Header() {
           >
             All links
           </a>
+          <a
+            href="/docs"
+            className="rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-white/5 hover:text-slate-100"
+          >
+            Docs
+          </a>
           {session && (
             <a
               href="/my"

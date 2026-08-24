@@ -4,6 +4,7 @@ import PopularLinks from './components/PopularLinks'
 import AllLinks from './components/AllLinks'
 import MyLinks from './components/MyLinks'
 import Settings from './components/Settings'
+import Docs from './components/Docs'
 import Redirector from './components/Redirector'
 
 export default function App() {
@@ -17,7 +18,9 @@ export default function App() {
         ? MyLinks
         : path === '/settings' || path === '/profile'
           ? Settings
-          : null
+          : path === '/docs' || path === '/documentation'
+            ? Docs
+            : null
 
   if (appPage) {
     const Page = appPage
@@ -28,7 +31,8 @@ export default function App() {
           <Page />
         </main>
         <footer className="border-t border-slate-200 py-8 text-center text-sm text-slate-500 dark:border-white/5 dark:text-slate-400">
-          Built with React + TailwindCSS · wlink © 2026
+          <a href="/docs" className="text-sky-600 hover:underline dark:text-sky-300">Docs</a>
+          {' '}· Built with React + TailwindCSS · wlink © 2026
         </footer>
       </div>
     )
@@ -48,8 +52,10 @@ export default function App() {
         <PopularLinks />
       </main>
       <footer className="border-t border-slate-200 py-8 text-center text-sm text-slate-500 dark:border-white/5 dark:text-slate-400">
-        Built with React + TailwindCSS · wlink © 2026
+        <a href="/docs" className="text-sky-600 hover:underline dark:text-sky-300">Docs</a>
+        {' '}· Built with React + TailwindCSS · wlink © 2026
       </footer>
     </div>
   )
 }
+

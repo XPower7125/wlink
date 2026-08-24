@@ -75,7 +75,9 @@ export default async function handler(req, res) {
     slug === "all" ||
     slug === "my" ||
     slug === "settings" ||
-    slug === "profile"
+    slug === "profile" ||
+    slug === "docs" ||
+    slug === "documentation"
   ) {
     // Not a short link; let the SPA handle it (e.g. /favicon.svg falls through to filesystem anyway).
     return proxyIndex(req, res);

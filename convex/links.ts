@@ -78,6 +78,8 @@ const RESERVED = new Set([
   "static",
   "settings",
   "profile",
+  "docs",
+  "documentation",
 ]);
 
 function fail(msg) {

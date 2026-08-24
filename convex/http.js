@@ -122,7 +122,7 @@ http.route({
     }
 
     // Slug: custom (validated) or random, collision-checked.
-    const RESERVED = new Set(["api", "assets", "all", "my", "admin", "public", "static", "create", "signin", "signout", "settings", "profile"]);
+    const RESERVED = new Set(["api", "assets", "all", "my", "admin", "public", "static", "create", "signin", "signout", "settings", "profile", "docs", "documentation"]);
     let slug = String(body.slug || "").trim().toLowerCase();
     if (slug) {
       if (!/^[a-z0-9-]{1,40}$/.test(slug) || RESERVED.has(slug)) {
@@ -373,6 +373,10 @@ http.route({
 > wlink is a free URL shortener with custom embeds, pinning, bumping, expiring links and QR codes.
 
 Public short links look like ${base}/{slug}. This API base is ${convexBase}.
+
+## Docs
+
+- Human documentation: ${base}/docs
 
 ## Public API (no auth)
 
