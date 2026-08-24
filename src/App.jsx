@@ -3,6 +3,7 @@ import Hero from './components/Hero'
 import PopularLinks from './components/PopularLinks'
 import AllLinks from './components/AllLinks'
 import MyLinks from './components/MyLinks'
+import Settings from './components/Settings'
 import Redirector from './components/Redirector'
 
 export default function App() {
@@ -10,7 +11,13 @@ export default function App() {
     typeof window !== 'undefined' ? window.location.pathname : '/'
 
   const appPage =
-    path === '/all' ? AllLinks : path === '/my' ? MyLinks : null
+    path === '/all'
+      ? AllLinks
+      : path === '/my'
+        ? MyLinks
+        : path === '/settings' || path === '/profile'
+          ? Settings
+          : null
 
   if (appPage) {
     const Page = appPage

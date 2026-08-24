@@ -124,7 +124,7 @@ http.route({
     }
 
     // Slug: custom (validated) or random, collision-checked.
-    const RESERVED = new Set(["api", "assets", "all", "my", "admin", "public", "static", "create", "signin", "signout"]);
+    const RESERVED = new Set(["api", "assets", "all", "my", "admin", "public", "static", "create", "signin", "signout", "settings", "profile"]);
     let slug = String(body.slug || "").trim().toLowerCase();
     if (slug) {
       if (!/^[a-z0-9-]{1,40}$/.test(slug) || RESERVED.has(slug)) {

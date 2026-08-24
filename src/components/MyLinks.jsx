@@ -6,8 +6,6 @@ import { normalizeUrl } from '../lib/store'
 import { authClient, signInDiscord } from '../lib/auth-client'
 import QrModal from './QrModal'
 
-const EXT_API_BASE = 'https://tangible-basilisk-706.eu-west-1.convex.site'
-
 function formatClicks(n) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M clicks`
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K clicks`
@@ -371,9 +369,6 @@ export default function MyLinks() {
   const { data: session, isPending } = authClient.useSession()
   const now = useNow()
   const links = useQuery(api.links.listMine, session ? {} : 'skip') ?? []
-  const extToken = useQuery(api.links.getExtToken, session ? {} : 'skip')
-  const ensureExtToken = useMutation(api.links.ensureExtToken)
-  const rotateExtToken = useMutation(api.links.rotateExtToken)
   const removeLink = useMutation(api.links.removeLink)
   const bumpLinkMutation = useMutation(api.links.bumpLink)
   const myRolesAction = useAction(api.links.myRoles)
@@ -390,8 +385,6 @@ export default function MyLinks() {
   const [allLinks, setAllLinks] = useState(null)
   const [adminError, setAdminError] = useState('')
   const [error, setError] = useState('')
-  const [showToken, setShowToken] = useState(false)
-  const [tokenCopied, setTokenCopied] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -698,73 +691,22 @@ export default function MyLinks() {
         )}
 
         {session && (
-          <div className="mt-16">
-            <h3 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">
-              Chrome{' '}
-              <span className="bg-gradient-to-r from-sky-400 to-blue-600 bg-clip-text text-transparent">extension</span>
-            </h3>
-            <p className="mt-2 max-w-2xl text-sm text-slate-500 dark:text-slate-400">
-              Shorten the page you're on straight from your browser toolbar. Load the <code className="rounded bg-slate-200 px-1 font-mono text-xs dark:bg-white/10">extension/</code> folder via <code className="rounded bg-slate-200 px-1 font-mono text-xs dark:bg-white/10">chrome://extensions</code> → Developer mode → Load unpacked, then paste this token into the extension.
-            </p>
-            <div className="mt-4 max-w-2xl rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-900/60">
-              <p className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">Your extension token</p>
-              <div className="flex items-center gap-2">
-                <code className="min-w-0 flex-1 truncate rounded-xl bg-slate-100 px-3 py-2 font-mono text-xs text-slate-700 dark:bg-black/30 dark:text-slate-200">
-                  {extToken === undefined
-                    ? 'Loading…'
-                    : extToken
-                      ? showToken
-                        ? extToken
-                        : `${extToken.slice(0, 8)}${'•'.repeat(24)}${extToken.slice(-8)}`
-                      : 'No token yet'}
-                </code>
-                {extToken && (
-                  <>
-                    <button
-                      onClick={() => setShowToken(!showToken)}
-                      className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-200 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
-                    >
-                      {showToken ? 'Hide' : 'Show'}
-                    </button>
-                    <button
-                      onClick={async () => {
-                        try {
-                          await navigator.clipboard.writeText(extToken)
-                          setTokenCopied(true)
-                          setTimeout(() => setTokenCopied(false), 1500)
-                        } catch {}
-                      }}
-                      className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-200 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
-                    >
-                      {tokenCopied ? 'Copied ✓' : 'Copy'}
-                    </button>
-                  </>
-                )}
+          <div className="mt-16 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900/60">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  🧩 Chrome extension &amp; account settings
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Get your extension token, manage your profile and more.
+                </p>
               </div>
-              <div className="mt-3 flex gap-2">
-                {!extToken ? (
-                  <button
-                    onClick={() => ensureExtToken().catch((err) => setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not create token.'))}
-                    className="rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/30 transition hover:brightness-110"
-                  >
-                    Create token
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Rotate token? The extension will stop working until you paste the new one.')) {
-                        rotateExtToken().catch((err) => setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not rotate token.'))
-                      }
-                    }}
-                    className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-100 dark:border-rose-500/20 dark:bg-rose-500/10 dark:text-rose-400 dark:hover:bg-rose-500/20"
-                  >
-                    Rotate token
-                  </button>
-                )}
-              </div>
-              <p className="mt-2 text-[11px] text-slate-400 dark:text-slate-500">
-                API base for the extension: <code className="font-mono">{EXT_API_BASE}</code>
-              </p>
+              <a
+                href="/settings"
+                className="rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/30 transition hover:brightness-110"
+              >
+                Open settings →
+              </a>
             </div>
           </div>
         )}

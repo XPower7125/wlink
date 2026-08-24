@@ -45,6 +45,14 @@ export default function Header() {
               My links
             </a>
           )}
+          {session && (
+            <a
+              href="/settings"
+              className="rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-white/5 hover:text-slate-100"
+            >
+              Settings
+            </a>
+          )}
           <a
             href="https://discord.gg/3x7CCaKzjA"
             target="_blank"
@@ -88,10 +96,16 @@ export default function Header() {
           </button>
           {session ? (
           <div className="flex items-center gap-2">
-            {session.user.image && (
-              <img src={session.user.image} alt="" className="size-7 rounded-full ring-1 ring-slate-200 dark:ring-white/20" />
-            )}
-            <span className="hidden text-sm text-slate-700 sm:block dark:text-slate-300">{session.user.name}</span>
+            <a
+              href="/settings"
+              title="Profile & settings"
+              className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-white/5"
+            >
+              {session.user.image && (
+                <img src={session.user.image} alt="" className="size-7 rounded-full ring-1 ring-slate-200 dark:ring-white/20" />
+              )}
+              <span className="hidden text-sm text-slate-700 sm:block dark:text-slate-300">{session.user.name}</span>
+            </a>
           </div>
         ) : (
           <button

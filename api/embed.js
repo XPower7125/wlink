@@ -70,7 +70,13 @@ async function fetchLink(slug) {
 
 export default async function handler(req, res) {
   const slug = String(req.query.slug || "");
-  if (!/^[a-zA-Z0-9-]{1,40}$/.test(slug) || slug === "all" || slug === "my") {
+  if (
+    !/^[a-zA-Z0-9-]{1,40}$/.test(slug) ||
+    slug === "all" ||
+    slug === "my" ||
+    slug === "settings" ||
+    slug === "profile"
+  ) {
     // Not a short link; let the SPA handle it (e.g. /favicon.svg falls through to filesystem anyway).
     return proxyIndex(req, res);
   }
