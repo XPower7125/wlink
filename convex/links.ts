@@ -260,6 +260,8 @@ export const recordClick = mutation({
 
 // ── premium early access: bump a link once every 6h ─────────────────────
 const BUMP_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+// A bump boosts ranking for this long after it's used.
+export const BUMP_BOOST_MS = 60 * 60 * 1000;
 
 // Premium-only bump. Uses the cached userRoles table because mutations can't
 // fetch Discord live; myRoles refreshes the cache whenever the dashboard loads.
@@ -308,10 +310,11 @@ function sortPinnedFirst(a: any, b: any, now: number): number {
   return 0;
 }
 
-// Recently bumped links float above non-bumped ones (below pins).
-function sortBumpedFirst(a: any, b: any): number {
-  const aBumped = a.bumpedAt ?? 0;
-  const bBumped = b.bumpedAt ?? 0;
+// Recently bumped links float above non-bumped ones (below pins) — but only
+// for 1h after the bump; after that the link sinks back to click order.
+function sortBumpedFirst(a: any, b: any, now: number): number {
+  const aBumped = a.bumpedAt != null && now - a.bumpedAt < BUMP_BOOST_MS ? a.bumpedAt : 0;
+  const bBumped = b.bumpedAt != null && now - b.bumpedAt < BUMP_BOOST_MS ? b.bumpedAt : 0;
   return bBumped - aBumped;
 }
 
@@ -325,7 +328,7 @@ export const listPublic = query({
       .sort((a, b) => {
         const pinCmp = sortPinnedFirst(a, b, now);
         if (pinCmp !== 0) return pinCmp;
-        const bumpCmp = sortBumpedFirst(a, b);
+        const bumpCmp = sortBumpedFirst(a, b, now);
         if (bumpCmp !== 0) return bumpCmp;
         return b.clicks - a.clicks;
       })
