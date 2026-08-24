@@ -40,7 +40,7 @@ export default function Redirector({ slug }) {
     }
   }, [unlocked, slug, recordClick]);
 
-  const redirectText = link.redirectText?.trim() || "Redirecting…";
+  const redirectText = link?.redirectText?.trim() || "Redirecting…";
 
   if (link === undefined) {
     return (
