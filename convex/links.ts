@@ -6,7 +6,7 @@ import {
   query,
   internalMutation,
 } from "./_generated/server";
-import { components } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import { authComponent } from "./auth";
 
 const SLUG_RE = /^[a-z0-9-]{1,40}$/;
