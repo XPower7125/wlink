@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAction, useMutation } from 'convex/react'
+import QRCode from 'qrcode'
 import { api } from '../../convex/_generated/api'
 import { normalizeUrl, randomSlug } from '../lib/store'
 import { authClient, signInDiscord } from '../lib/auth-client'
@@ -32,6 +33,7 @@ export default function Hero() {
   const [expiresIn, setExpiresIn] = useState('')
   const [isPremium, setIsPremium] = useState(false)
   const [created, setCreated] = useState(null)
+  const [createdQr, setCreatedQr] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -98,6 +100,13 @@ export default function Hero() {
       }
     }
     setCreated(`${window.location.origin}/${slug}`)
+    QRCode.toDataURL(`${window.location.origin}/${slug}`, {
+      width: 256,
+      margin: 2,
+      color: { dark: '#0f172a', light: '#ffffff' },
+    })
+      .then(setCreatedQr)
+      .catch(() => setCreatedQr(null))
     setError('')
     setUrl('')
     setTitle('')
@@ -351,10 +360,27 @@ export default function Hero() {
 
             {error && <p className="text-sm text-rose-500 dark:text-rose-400">{error}</p>}
             {created && (
-              <p className="text-sm text-emerald-600 dark:text-emerald-400">
-                Created! Your short link:{' '}
-                <span className="font-mono font-semibold text-sky-600 dark:text-sky-300">{created}</span>
-              </p>
+              <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-400/30 dark:bg-emerald-400/10">
+                <p className="text-sm text-emerald-600 dark:text-emerald-400">
+                  Created! Your short link:{' '}
+                  <span className="font-mono font-semibold text-sky-600 dark:text-sky-300">{created}</span>
+                </p>
+                {createdQr && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <img src={createdQr} alt={`QR code for ${created}`} className="size-24 rounded-lg bg-white p-1" />
+                    <div>
+                      <p className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Scan to open</p>
+                      <a
+                        href={createdQr}
+                        download="wlink-qr.png"
+                        className="mt-1 inline-block text-xs font-semibold text-sky-600 transition hover:text-sky-500 dark:text-sky-300 dark:hover:text-sky-200"
+                      >
+                        Download QR ↓
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             <button

@@ -4,6 +4,7 @@ import { useAction, useMutation, useQuery } from 'convex/react'
 import { api } from '../../convex/_generated/api'
 import { normalizeUrl } from '../lib/store'
 import { authClient, signInDiscord } from '../lib/auth-client'
+import QrModal from './QrModal'
 
 function formatClicks(n) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M clicks`
@@ -349,6 +350,7 @@ export default function MyLinks() {
   const [editingId, setEditingId] = useState(null)
   const [confirmId, setConfirmId] = useState(null)
   const [adminConfirmId, setAdminConfirmId] = useState(null)
+  const [qrLink, setQrLink] = useState(null)
   const [isMod, setIsMod] = useState(false)
   const [isPremium, setIsPremium] = useState(false)
   const [bumpDuration, setBumpDuration] = useState('1h')
@@ -618,6 +620,13 @@ export default function MyLinks() {
                     >
                       Edit
                     </button>
+                    <button
+                      onClick={() => setQrLink(`${window.location.origin}/${link.slug}`)}
+                      title="Show QR code"
+                      className="rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-sky-400/40 hover:bg-sky-400/10 hover:text-sky-600 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:text-sky-300"
+                    >
+                      ⬛ QR
+                    </button>
                     {confirmId === link._id ? (
                       <div className="flex flex-1 gap-2">
                         <button
@@ -648,6 +657,10 @@ export default function MyLinks() {
           </div>
         )}
         {error && <p className="mt-4 text-sm text-rose-500 dark:text-rose-400">{error}</p>}
+
+        {qrLink && (
+          <QrModal url={qrLink} onClose={() => setQrLink(null)} />
+        )}
 
         {isMod && (
           <div className="mt-16">
