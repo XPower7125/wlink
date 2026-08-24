@@ -34,6 +34,8 @@ http.route({
       icon: link.icon ?? null,
       color: link.color ?? null,
       image: link.image ?? null,
+      embedMode: link.embedMode ?? "wlink",
+      url: link.url ?? null,
     });
   }),
 });

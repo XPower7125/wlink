@@ -105,6 +105,8 @@ export const createLink = mutation({
     // ── upstream feature: optional password protection ──────────────────
     password: v.optional(v.string()),
     public: v.boolean(),
+    // ── embed style: "wlink" (custom) or "stock" (destination's own embed) ──
+    embedMode: v.optional(v.string()),
     // ── premium early access: expiry selector ("30m" … "7d") ───────────
     expiresIn: v.optional(v.string()),
   },
@@ -219,6 +221,8 @@ export const createLink = mutation({
       fail("That alias is already taken. Please choose another.");
     }
 
+    const embedMode = args.embedMode === "stock" ? "stock" : "wlink";
+
     return ctx.db.insert("links", {
       slug,
       url,
@@ -232,6 +236,7 @@ export const createLink = mutation({
       clicks: 0,
       public: Boolean(args.public),
       expiresAt,
+      embedMode,
     });
   },
 });
@@ -492,6 +497,8 @@ export const updateLink = mutation({
     // undefined = keep current password, "" = remove it, non-empty = set it
     password: v.optional(v.string()),
     public: v.boolean(),
+    // ── embed style: "wlink" (custom) or "stock" (destination's own embed) ──
+    embedMode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const user = await authComponent.getAuthUser(ctx);
@@ -521,6 +528,7 @@ export const updateLink = mutation({
       ...fields,
       passwordHash,
       public: Boolean(args.public),
+      embedMode: args.embedMode === "stock" ? "stock" : "wlink",
     });
   },
 });

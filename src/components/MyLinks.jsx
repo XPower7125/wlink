@@ -120,6 +120,7 @@ function EditForm({ link, onDone, premium }) {
   const [password, setPassword] = useState('')
   const [removePassword, setRemovePassword] = useState(false)
   const [publicListing, setPublicListing] = useState(link.public)
+  const [embedMode, setEmbedMode] = useState(link.embedMode === 'stock' ? 'stock' : 'wlink')
   const [redirectText, setRedirectText] = useState(link.redirectText ?? '')
   const [textColor, setTextColor] = useState(link.textColor ?? '')
   const [textColor2, setTextColor2] = useState(link.textColor2 ?? '')
@@ -154,6 +155,7 @@ function EditForm({ link, onDone, premium }) {
         image: embedImage ?? '',
         password: removePassword ? '' : password.trim() || undefined,
         public: publicListing,
+        embedMode,
       })
       if (premium) {
         await saveRedirectText({ id: link._id, text: redirectText })
@@ -220,6 +222,32 @@ function EditForm({ link, onDone, premium }) {
           </button>
           <span className="text-sm font-medium text-slate-700 dark:text-slate-200">List this link publicly</span>
         </label>
+        <div>
+          <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+            <span>🖼️</span> Embed style
+          </label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              aria-pressed={embedMode === 'wlink'}
+              onClick={() => setEmbedMode('wlink')}
+              className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${embedMode === 'wlink' ? 'border-sky-500 bg-sky-500 text-white shadow-sm shadow-sky-500/30' : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-sky-400/50 dark:border-white/10 dark:bg-black/20 dark:text-slate-300'}`}
+            >
+              Custom embed
+            </button>
+            <button
+              type="button"
+              aria-pressed={embedMode === 'stock'}
+              onClick={() => setEmbedMode('stock')}
+              className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${embedMode === 'stock' ? 'border-sky-500 bg-sky-500 text-white shadow-sm shadow-sky-500/30' : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-sky-400/50 dark:border-white/10 dark:bg-black/20 dark:text-slate-300'}`}
+            >
+              Stock embed
+            </button>
+          </div>
+          <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+            Custom uses your title/description/color. Stock shows the destination site's own preview instead.
+          </p>
+        </div>
         <div>
           <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
             <span>👑</span> Custom redirect text

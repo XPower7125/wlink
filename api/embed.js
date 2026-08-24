@@ -94,6 +94,19 @@ export default async function handler(req, res) {
     );
   }
 
+  // ── stock embed mode: hand bots straight to the destination so the
+  // destination site's own preview (og tags, title, image) is used instead
+  // of wlink's custom embed. Bots follow redirects, so a 302 suffices.
+  if (
+    link.embedMode === "stock" &&
+    typeof link.url === "string" &&
+    /^https?:\/\//i.test(link.url)
+  ) {
+    hardenedHeaders(res);
+    res.setHeader("Cache-Control", "public, max-age=300");
+    return res.redirect(302, link.url);
+  }
+
   const title = `${link.icon ? link.icon + " " : ""}${link.title}`.slice(0, 256);
   const description = (link.description || "").slice(0, 512);
   const color =

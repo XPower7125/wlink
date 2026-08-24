@@ -36,6 +36,10 @@ export default defineSchema({
     // When set, this link ranks above normal links until this timestamp.
     // Premium members may choose a longer bump duration.
     bumpBoostUntil: v.optional(v.number()),
+    // Embed style for bot previews: "wlink" (custom embed from stored
+    // title/description/color/image, default) or "stock" (bots are pointed
+    // at the destination so the destination site's own embed is used).
+    embedMode: v.optional(v.string()),
     // Premium early access feature: after this ms-epoch instant the link stops
     // resolving (redirects 404-ish, hidden from listings).
     expiresAt: v.optional(v.number()),

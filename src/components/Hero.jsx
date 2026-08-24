@@ -28,6 +28,7 @@ export default function Hero() {
   const [password, setPassword] = useState('')
   const [customAlias, setCustomAlias] = useState('')
   const [publicListing, setPublicListing] = useState(false)
+  const [embedMode, setEmbedMode] = useState('wlink')
   const [redirectText, setRedirectText] = useState('')
   const [textColor, setTextColor] = useState('')
   const [expiresIn, setExpiresIn] = useState('')
@@ -77,6 +78,7 @@ export default function Hero() {
       image: embedImage,
       password: password.trim() || undefined,
       public: publicListing,
+      embedMode,
       expiresIn: isPremium && expiresIn ? expiresIn : undefined,
     }
     let newId
@@ -113,6 +115,7 @@ export default function Hero() {
     setDescription('')
     setCustomAlias('')
     setPublicListing(false)
+    setEmbedMode('wlink')
     setColor('#38bdf8')
     setImage('')
     setPassword('')
@@ -229,6 +232,33 @@ export default function Hero() {
             <p className="text-xs text-slate-400 dark:text-slate-500">
               The color stripe and preview shown when your link is shared on Discord.
             </p>
+
+            <div>
+              <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+                <span>🖼️</span> Embed style
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  aria-pressed={embedMode === 'wlink'}
+                  onClick={() => setEmbedMode('wlink')}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${embedMode === 'wlink' ? 'border-sky-500 bg-sky-500 text-white shadow-sm shadow-sky-500/30' : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-sky-400/50 dark:border-white/10 dark:bg-black/20 dark:text-slate-300'}`}
+                >
+                  Custom embed
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={embedMode === 'stock'}
+                  onClick={() => setEmbedMode('stock')}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${embedMode === 'stock' ? 'border-sky-500 bg-sky-500 text-white shadow-sm shadow-sky-500/30' : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-sky-400/50 dark:border-white/10 dark:bg-black/20 dark:text-slate-300'}`}
+                >
+                  Stock embed
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                Custom uses your title/description/color. Stock skips it and shows the destination site's own preview.
+              </p>
+            </div>
 
             <input
               type="password"
