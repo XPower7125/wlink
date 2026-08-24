@@ -122,20 +122,37 @@ function EditForm({ link, onDone, premium }) {
           </button>
           <span className="text-sm font-medium text-slate-700 dark:text-slate-200">List this link publicly</span>
         </label>
-        {premium && (
-          <div>
-            <input
-              value={redirectText}
-              onChange={(e) => setRedirectText(e.target.value)}
-              maxLength={120}
-              placeholder="Custom redirect text (premium)"
-              className={inputCls}
-            />
-            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-              Premium: this text replaces "Redirecting…" on the redirect page.
-            </p>
-          </div>
-        )}
+        <div>
+          <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+            <span>👑</span> Custom redirect text
+          </label>
+          {premium ? (
+            <>
+              <input
+                value={redirectText}
+                onChange={(e) => setRedirectText(e.target.value)}
+                maxLength={120}
+                placeholder="Custom redirect text (premium)"
+                className={inputCls}
+              />
+              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
+                Premium: this text replaces "Redirecting…" on the redirect page.
+              </p>
+            </>
+          ) : (
+            <>
+              <input
+                disabled
+                value=""
+                placeholder="Premium feature"
+                className="w-full cursor-not-allowed rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-700/70 outline-none dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300/70"
+              />
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-300/80">
+                Premium feature — upgrade to customize the redirect message.
+              </p>
+            </>
+          )}
+        </div>
         {error && <p className="text-sm text-rose-500 dark:text-rose-400">{error}</p>}
         <div className="flex gap-2">
           <button
