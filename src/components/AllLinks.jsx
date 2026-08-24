@@ -13,7 +13,7 @@ function isPinned(link) {
 }
 const BUMP_BOOST_MS = 60 * 60 * 1000
 function bumpActive(link) {
-  return link.bumpedAt != null && Date.now() - link.bumpedAt < BUMP_BOOST_MS
+  return link.bumpedAt != null && (link.bumpBoostUntil ?? link.bumpedAt + BUMP_BOOST_MS) > Date.now()
 }
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 function titleStyle(link) {
@@ -129,7 +129,7 @@ export default function AllLinks() {
                       📌 Pinned{link.pinnedPermanent ? " • permanent" : ""}
                     </span>
                   )}
-                  {link.bumpedAt != null && (
+                  {bumpActive(link) && (
                     <span className={`absolute right-3 rounded-full border border-violet-300 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300 ${isPinned(link) ? "top-10" : "top-3"}`}>
                       🚀 Bumped
                     </span>

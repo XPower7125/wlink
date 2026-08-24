@@ -291,16 +291,24 @@ export const recordClick = mutation({
   },
 });
 
-// ── premium early access: bump a link once every 6h ─────────────────────
+// ── bump a link once every 6h ───────────────────────────────────────────
 const BUMP_COOLDOWN_MS = 6 * 60 * 60 * 1000;
-// A bump boosts ranking for this long after it's used.
-export const BUMP_BOOST_MS = 60 * 60 * 1000;
+export const BUMP_DURATIONS_MS = {
+  "30m": 30 * 60 * 1000,
+  "1h": 60 * 60 * 1000,
+  "2h": 2 * 60 * 60 * 1000,
+} as const;
+// Existing bumps did not record their expiry, so preserve their original 1h boost.
+export const BUMP_BOOST_MS = BUMP_DURATIONS_MS["1h"];
 
-// Premium-only bump. Uses the cached userRoles table because mutations can't
-// fetch Discord live; myRoles refreshes the cache whenever the dashboard loads.
+// Everyone can bump their own link. Premium members can choose a longer boost;
+// cached roles are used because mutations cannot fetch Discord live.
 export const bumpLink = mutation({
-  args: { slug: v.string() },
-  handler: async (ctx, { slug }) => {
+  args: {
+    slug: v.string(),
+    duration: v.optional(v.union(v.literal("30m"), v.literal("1h"), v.literal("2h"))),
+  },
+  handler: async (ctx, { slug, duration }) => {
     const user = await authComponent.getAuthUser(ctx);
     if (!user) fail("You must be signed in to bump links.");
 
@@ -309,8 +317,10 @@ export const bumpLink = mutation({
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .unique();
     const isStaff = rolesDoc?.isStaff ?? false;
-    if (!(isStaff || (rolesDoc?.isPremium ?? false))) {
-      fail("Bumping is a premium feature (early access).");
+    const isPremium = rolesDoc?.isPremium ?? false;
+    const selectedDuration = duration ?? "30m";
+    if (duration !== undefined && !(isStaff || isPremium)) {
+      fail("Choosing a bump duration is a premium feature.");
     }
 
     const normSlug = String(slug || "").toLowerCase();
@@ -333,8 +343,9 @@ export const bumpLink = mutation({
       }
     }
 
-    await ctx.db.patch(link._id, { bumpedAt: now });
-    return { bumpedAt: now };
+    const bumpBoostUntil = now + BUMP_DURATIONS_MS[selectedDuration];
+    await ctx.db.patch(link._id, { bumpedAt: now, bumpBoostUntil });
+    return { bumpedAt: now, bumpBoostUntil };
   },
 });
 
@@ -345,11 +356,11 @@ function sortPinnedFirst(a: any, b: any, now: number): number {
   return 0;
 }
 
-// Recently bumped links float above non-bumped ones (below pins) — but only
-// for 1h after the bump; after that the link sinks back to click order.
+// Recently bumped links float above non-bumped ones (below pins) until the
+// selected duration expires. Existing bumps fall back to the former 1h window.
 function sortBumpedFirst(a: any, b: any, now: number): number {
-  const aBumped = a.bumpedAt != null && now - a.bumpedAt < BUMP_BOOST_MS ? a.bumpedAt : 0;
-  const bBumped = b.bumpedAt != null && now - b.bumpedAt < BUMP_BOOST_MS ? b.bumpedAt : 0;
+  const aBumped = a.bumpedAt != null && (a.bumpBoostUntil ?? a.bumpedAt + BUMP_BOOST_MS) > now ? a.bumpedAt : 0;
+  const bBumped = b.bumpedAt != null && (b.bumpBoostUntil ?? b.bumpedAt + BUMP_BOOST_MS) > now ? b.bumpedAt : 0;
   return bBumped - aBumped;
 }
 

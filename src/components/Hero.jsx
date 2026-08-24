@@ -213,7 +213,7 @@ export default function Hero() {
               <input
                 value={image}
                 onChange={(e) => setImage(e.target.value)}
-                placeholder="Embed image URL (optional)"
+                placeholder="Embed image URL"
                 className="w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500"
               />
             </div>

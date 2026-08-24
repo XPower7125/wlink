@@ -30,6 +30,7 @@ function pinLabel(link) {
 }
 
 const BUMP_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const LEGACY_BUMP_BOOST_MS = 60 * 60 * 1000;
 // Ticking clock so cooldown labels refresh every minute.
 function useNow(intervalMs = 30000) {
   const [now, setNow] = useState(Date.now())
@@ -44,10 +45,27 @@ function bumpLabel(link, now, isMod = false) {
   if (!link.bumpedAt) return "🚀 Bump"
   const elapsed = now - link.bumpedAt
   if (elapsed >= BUMP_COOLDOWN_MS) return "🚀 Bump"
+  return `⏳ ${bumpTimeLeft(link, now)}`
+}
+
+function bumpTimeLeft(link, now) {
+  if (!link.bumpedAt) return null
+  const elapsed = now - link.bumpedAt
+  if (elapsed >= BUMP_COOLDOWN_MS) return null
   const minsLeft = Math.ceil((BUMP_COOLDOWN_MS - elapsed) / 60000)
   const h = Math.floor(minsLeft / 60)
   const m = minsLeft % 60
-  return h > 0 ? `⏳ ${h}h ${m}m` : `⏳ ${m}m`
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+
+function bumpBoostTimeLeft(link, now) {
+  if (!link.bumpedAt) return null
+  const boostUntil = link.bumpBoostUntil ?? link.bumpedAt + LEGACY_BUMP_BOOST_MS
+  const minsLeft = Math.ceil((boostUntil - now) / 60000)
+  if (minsLeft <= 0) return null
+  const h = Math.floor(minsLeft / 60)
+  const m = minsLeft % 60
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
 function expLabel(link) {
@@ -98,6 +116,7 @@ function EditForm({ link, onDone, premium }) {
   const [redirectText, setRedirectText] = useState(link.redirectText ?? '')
   const [textColor, setTextColor] = useState(link.textColor ?? '')
   const [textColor2, setTextColor2] = useState(link.textColor2 ?? '')
+  const [colorMode, setColorMode] = useState(link.textColor2 ? 'gradient' : 'solid')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -159,7 +178,7 @@ function EditForm({ link, onDone, premium }) {
             />
             Embed color
           </label>
-          <input value={image} onChange={(e) => setImage(e.target.value)} placeholder="Embed image URL (optional)" className={inputCls} />
+          <input value={image} onChange={(e) => setImage(e.target.value)} placeholder="Embed image URL" className={inputCls} />
         </div>
         {link.requiresPassword ? (
           <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 transition hover:border-sky-400/30 dark:border-white/10 dark:bg-black/30 dark:text-slate-100">
@@ -226,51 +245,58 @@ function EditForm({ link, onDone, premium }) {
           )}
         </div>
         <div>
-          <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
-            <span>👑</span> Custom title color
+          <label className="mb-2 flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+            <span>👑</span> Custom title style
           </label>
           {premium ? (
             <>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={textColor || '#38bdf8'}
-                  onChange={(e) => setTextColor(e.target.value)}
-                  className="size-8 cursor-pointer rounded-lg border border-slate-200 bg-transparent p-0 dark:border-white/10 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0"
-                />
-                <input
-                  value={textColor}
-                  onChange={(e) => setTextColor(e.target.value)}
-                  placeholder="#38bdf8 (leave empty for default)"
-                  className={inputCls + ' flex-1'}
-                />
-                {textColor && (
-                  <button type="button" onClick={() => setTextColor('')} className="text-xs text-slate-500 dark:text-slate-400">
-                    Clear
-                  </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  aria-pressed={colorMode === 'solid'}
+                  onClick={() => { setColorMode('solid'); setTextColor2('') }}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${colorMode === 'solid' ? 'border-sky-500 bg-sky-500 text-white shadow-sm shadow-sky-500/30' : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-sky-400/50 dark:border-white/10 dark:bg-black/20 dark:text-slate-300'}`}
+                >
+                  Solid color
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={colorMode === 'gradient'}
+                  onClick={() => { setColorMode('gradient'); setTextColor(textColor || '#38bdf8'); setTextColor2(textColor2 || '#818cf8') }}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition ${colorMode === 'gradient' ? 'border-violet-500 bg-violet-500 text-white shadow-sm shadow-violet-500/30' : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-violet-400/50 dark:border-white/10 dark:bg-black/20 dark:text-slate-300'}`}
+                >
+                  Gradient
+                </button>
+              </div>
+              <div className={`mt-3 grid gap-3 ${colorMode === 'gradient' ? 'sm:grid-cols-2' : ''}`}>
+                <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-100 p-3 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-200">
+                  <input
+                    type="color"
+                    value={textColor || '#38bdf8'}
+                    onChange={(e) => setTextColor(e.target.value)}
+                    className="size-11 shrink-0 cursor-pointer rounded-lg border-none bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0"
+                  />
+                  <span><span className="block text-xs text-slate-500 dark:text-slate-400">{colorMode === 'gradient' ? 'Color 1' : 'Color'}</span>{textColor || '#38bdf8'}</span>
+                </label>
+                {colorMode === 'gradient' && (
+                  <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-100 p-3 text-sm font-medium text-slate-700 dark:border-white/10 dark:bg-black/20 dark:text-slate-200">
+                    <input
+                      type="color"
+                      value={textColor2 || '#818cf8'}
+                      onChange={(e) => setTextColor2(e.target.value)}
+                      className="size-11 shrink-0 cursor-pointer rounded-lg border-none bg-transparent p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0"
+                    />
+                    <span><span className="block text-xs text-slate-500 dark:text-slate-400">Color 2</span>{textColor2 || '#818cf8'}</span>
+                  </label>
                 )}
               </div>
-              <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">Premium: custom color for the title in public listings.</p>
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  type="color"
-                  value={textColor2 || '#818cf8'}
-                  onChange={(e) => setTextColor2(e.target.value)}
-                  className="size-8 cursor-pointer rounded-lg border border-slate-200 bg-transparent p-0 dark:border-white/10 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border-0"
-                />
-                <input
-                  value={textColor2}
-                  onChange={(e) => setTextColor2(e.target.value)}
-                  placeholder="Gradient end color (optional, e.g. #818cf8)"
-                  className={inputCls + ' flex-1'}
-                />
-                {textColor2 && (
-                  <button type="button" onClick={() => setTextColor2('')} className="text-xs text-slate-500 dark:text-slate-400">
-                    Clear
-                  </button>
-                )}
+              <div
+                className="mt-3 rounded-xl px-4 py-3 text-center text-sm font-semibold text-white"
+                style={colorMode === 'gradient' ? { backgroundImage: `linear-gradient(90deg, ${textColor || '#38bdf8'}, ${textColor2 || '#818cf8'})` } : { backgroundColor: textColor || '#38bdf8' }}
+              >
+                Title preview
               </div>
-              <p className="mt-1 text-xs text-violet-500 dark:text-violet-300">Premium: set an end color to render the title as a gradient.</p>
+              <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">Choose a solid color or blend two colors for the public link title.</p>
             </>
           ) : (
             <>
@@ -319,6 +345,7 @@ export default function MyLinks() {
   const [adminConfirmId, setAdminConfirmId] = useState(null)
   const [isMod, setIsMod] = useState(false)
   const [isPremium, setIsPremium] = useState(false)
+  const [bumpDuration, setBumpDuration] = useState('30m')
   const [allLinks, setAllLinks] = useState(null)
   const [adminError, setAdminError] = useState('')
   const [error, setError] = useState('')
@@ -383,7 +410,10 @@ export default function MyLinks() {
   const handleBump = async (link) => {
     if (isMod || !link.bumpedAt || now - link.bumpedAt >= BUMP_COOLDOWN_MS) {
       try {
-        await bumpLinkMutation({ slug: link.slug })
+        await bumpLinkMutation({
+          slug: link.slug,
+          duration: isPremium || isMod ? bumpDuration : undefined,
+        })
         setError('')
       } catch (err) {
         setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not bump link.')
@@ -467,7 +497,11 @@ export default function MyLinks() {
                       )}
                       {link.bumpedAt != null && (
                         <span className="rounded-full border border-violet-300 bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700 dark:border-violet-400/30 dark:bg-violet-400/10 dark:text-violet-300">
-                          🚀 Bumped
+                          {bumpBoostTimeLeft(link, now)
+                            ? `🚀 Boosted · ${bumpBoostTimeLeft(link, now)} remaining`
+                            : bumpTimeLeft(link, now)
+                              ? `🚀 Bump ready in ${bumpTimeLeft(link, now)}`
+                              : '🚀 Bump ready'}
                         </span>
                       )}
                       {isPinned(link) && (
@@ -527,29 +561,38 @@ export default function MyLinks() {
                       <p className="text-[11px] text-amber-700/70 dark:text-amber-300/70">Upgrade to pin links for 30m–6h. Premium required.</p>
                     </div>
                   )}
-                  {/* Bump controls (premium, early access) */}
-                  {isPremium || isMod ? (
-                    <div className="mt-3 flex items-center justify-between rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 dark:border-violet-400/30 dark:bg-violet-400/10">
+                  <div className="mt-3 rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 dark:border-violet-400/30 dark:bg-violet-400/10">
+                    <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-xs font-medium text-violet-700 dark:text-violet-300">🚀 Bump to top of popular</p>
-                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">{isMod ? "Early access · staff: no cooldown" : "Early access · once every 6h"}</p>
+                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">{isMod ? 'Staff: no cooldown' : '30 minute boost · once every 6h'}</p>
                       </div>
                       <button
                         onClick={() => handleBump(link)}
                         disabled={!isMod && link.bumpedAt && now - link.bumpedAt < BUMP_COOLDOWN_MS}
-                        className="rounded-lg bg-violet-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="shrink-0 rounded-lg bg-violet-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {bumpLabel(link, now, isMod)}
                       </button>
                     </div>
-                  ) : (
-                    <div className="mt-3 rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 dark:border-violet-400/30 dark:bg-violet-400/10">
-                      <p className="flex items-center gap-1 text-xs font-medium text-violet-700 dark:text-violet-300">
-                        🚀 Bump — premium feature
-                      </p>
-                      <p className="text-[11px] text-violet-700/70 dark:text-violet-300/70">Early access · upgrade to bump your link to the top every 6h.</p>
-                    </div>
-                  )}
+                    {(isPremium || isMod) && (
+                      <div className="mt-2 border-t border-violet-300/70 pt-2 dark:border-violet-400/20">
+                        <p className="mb-1.5 text-[11px] font-medium text-violet-700 dark:text-violet-300">👑 Premium bump duration</p>
+                        <div className="flex gap-1.5">
+                          {[['30m', '30 minutes'], ['1h', '1 hour'], ['2h', '2 hours']].map(([value, label]) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => setBumpDuration(value)}
+                              className={`rounded-md px-2 py-1 text-[11px] font-medium transition ${bumpDuration === value ? 'bg-violet-500 text-white' : 'bg-white/70 text-violet-700 hover:bg-violet-100 dark:bg-black/20 dark:text-violet-200 dark:hover:bg-violet-400/20'}`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   <div className="mt-4 flex gap-2">
                     <button
                       onClick={() => { setEditingId(link._id); setConfirmId(null) }}
