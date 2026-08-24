@@ -258,11 +258,61 @@ export const recordClick = mutation({
   },
 });
 
+// ── premium early access: bump a link once every 6h ─────────────────────
+const BUMP_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+
+// Premium-only bump. Uses the cached userRoles table because mutations can't
+// fetch Discord live; myRoles refreshes the cache whenever the dashboard loads.
+export const bumpLink = mutation({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) fail("You must be signed in to bump links.");
+
+    const rolesDoc = await ctx.db
+      .query("userRoles")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+    if (!(rolesDoc?.isPremium ?? false)) {
+      fail("Bumping is a premium feature (early access).");
+    }
+
+    const normSlug = String(slug || "").toLowerCase();
+    const link = await ctx.db
+      .query("links")
+      .withIndex("by_slug", (q) => q.eq("slug", normSlug))
+      .unique();
+    if (!link) fail("Link not found.");
+    if (link.ownerId !== user._id) fail("You can only bump your own links.");
+
+    const now = Date.now();
+    if (link.bumpedAt != null) {
+      const elapsed = now - link.bumpedAt;
+      if (elapsed < BUMP_COOLDOWN_MS) {
+        const minsLeft = Math.ceil((BUMP_COOLDOWN_MS - elapsed) / 60000);
+        const h = Math.floor(minsLeft / 60);
+        const m = minsLeft % 60;
+        fail(`Already bumped — try again in ${h > 0 ? `${h}h ${m}m` : `${m}m`}.`);
+      }
+    }
+
+    await ctx.db.patch(link._id, { bumpedAt: now });
+    return { bumpedAt: now };
+  },
+});
+
 function sortPinnedFirst(a: any, b: any, now: number): number {
   const aPinned = isPinned(a, now) ? 1 : 0;
   const bPinned = isPinned(b, now) ? 1 : 0;
   if (aPinned !== bPinned) return bPinned - aPinned;
   return 0;
+}
+
+// Recently bumped links float above non-bumped ones (below pins).
+function sortBumpedFirst(a: any, b: any): number {
+  const aBumped = a.bumpedAt ?? 0;
+  const bBumped = b.bumpedAt ?? 0;
+  return bBumped - aBumped;
 }
 
 export const listPublic = query({
@@ -275,9 +325,11 @@ export const listPublic = query({
       .sort((a, b) => {
         const pinCmp = sortPinnedFirst(a, b, now);
         if (pinCmp !== 0) return pinCmp;
+        const bumpCmp = sortBumpedFirst(a, b);
+        if (bumpCmp !== 0) return bumpCmp;
         return b.clicks - a.clicks;
       })
-      .slice(0, 6)
+      .slice(0, 23)
       .map(({ passwordHash, ...safe }) => safe);
   },
 });

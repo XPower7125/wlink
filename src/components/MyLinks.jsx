@@ -29,6 +29,26 @@ function pinLabel(link) {
   return "📌 Pinned";
 }
 
+const BUMP_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+// Ticking clock so cooldown labels refresh every minute.
+function useNow(intervalMs = 30000) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), intervalMs)
+    return () => clearInterval(t)
+  }, [intervalMs])
+  return now
+}
+function bumpLabel(link, now) {
+  if (!link.bumpedAt) return "🚀 Bump"
+  const elapsed = now - link.bumpedAt
+  if (elapsed >= BUMP_COOLDOWN_MS) return "🚀 Bump"
+  const minsLeft = Math.ceil((BUMP_COOLDOWN_MS - elapsed) / 60000)
+  const h = Math.floor(minsLeft / 60)
+  const m = minsLeft % 60
+  return h > 0 ? `⏳ ${h}h ${m}m` : `⏳ ${m}m`
+}
+
 const inputCls =
   'w-full rounded-xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400/50 focus:ring-2 focus:ring-sky-400/20 dark:border-white/10 dark:bg-black/30 dark:text-slate-100 dark:placeholder:text-slate-500'
 
@@ -235,8 +255,10 @@ function EditForm({ link, onDone, premium }) {
 
 export default function MyLinks() {
   const { data: session, isPending } = authClient.useSession()
+  const now = useNow()
   const links = useQuery(api.links.listMine, session ? {} : 'skip') ?? []
   const removeLink = useMutation(api.links.removeLink)
+  const bumpLinkMutation = useMutation(api.links.bumpLink)
   const myRolesAction = useAction(api.links.myRoles)
   const loadAll = useAction(api.links.listAllAsModerator)
   const pinLinkAction = useAction(api.links.pinLink)
@@ -304,6 +326,17 @@ export default function MyLinks() {
       setError('')
     } catch (err) {
       setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not unpin link.')
+    }
+  }
+
+  const handleBump = async (link) => {
+    if (!link.bumpedAt || now - link.bumpedAt >= BUMP_COOLDOWN_MS) {
+      try {
+        await bumpLinkMutation({ slug: link.slug })
+        setError('')
+      } catch (err) {
+        setError(err?.message?.replace(/^\[?ERROR\]?\s*/i, '') || 'Could not bump link.')
+      }
     }
   }
 
@@ -431,6 +464,29 @@ export default function MyLinks() {
                         <span>👑</span> Pin link — premium feature
                       </p>
                       <p className="text-[11px] text-amber-700/70 dark:text-amber-300/70">Upgrade to pin links for 30m–6h. Premium required.</p>
+                    </div>
+                  )}
+                  {/* Bump controls (premium, early access) */}
+                  {isPremium || isMod ? (
+                    <div className="mt-3 flex items-center justify-between rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 dark:border-violet-400/30 dark:bg-violet-400/10">
+                      <div>
+                        <p className="text-xs font-medium text-violet-700 dark:text-violet-300">🚀 Bump to top of popular</p>
+                        <p className="text-[11px] text-violet-600/70 dark:text-violet-300/60">Early access · once every 6h</p>
+                      </div>
+                      <button
+                        onClick={() => handleBump(link)}
+                        disabled={link.bumpedAt && now - link.bumpedAt < BUMP_COOLDOWN_MS}
+                        className="rounded-lg bg-violet-500 px-2.5 py-1 text-xs font-semibold text-white transition hover:bg-violet-600 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {bumpLabel(link, now)}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-xl border border-violet-300 bg-violet-50 px-3 py-2 dark:border-violet-400/30 dark:bg-violet-400/10">
+                      <p className="flex items-center gap-1 text-xs font-medium text-violet-700 dark:text-violet-300">
+                        🚀 Bump — premium feature
+                      </p>
+                      <p className="text-[11px] text-violet-700/70 dark:text-violet-300/70">Early access · upgrade to bump your link to the top every 6h.</p>
                     </div>
                   )}
                   <div className="mt-4 flex gap-2">

@@ -27,6 +27,8 @@ export default defineSchema({
     pinnedAt: v.optional(v.number()),
     pinnedUntil: v.optional(v.number()),
     pinnedPermanent: v.optional(v.boolean()),
+    // Premium feature (early access): last bump time, ms epoch.
+    bumpedAt: v.optional(v.number()),
   })
     .index("by_slug", ["slug"])
     .index("by_owner", ["ownerId"]),
