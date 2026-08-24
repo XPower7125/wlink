@@ -676,6 +676,130 @@ export const listAllAsModerator = action({
   },
 });
 
+// ── Chrome extension support ─────────────────────────────────────────────
+// The extension can't share the app's better-auth cookies, so it authenticates
+// with a per-user Bearer token created while signed in on the site.
+
+const EXT_TOKEN_BYTES = 24; // 48 hex chars
+
+function randomHex(bytes: number): string {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return [...buf].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export const getExtToken = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) return null;
+    const doc = await ctx.db
+      .query("extTokens")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+    return doc?.token ?? null;
+  },
+});
+
+// Creates the caller's token if missing; returns it either way.
+export const ensureExtToken = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) fail("You must be signed in.");
+    const existing = await ctx.db
+      .query("extTokens")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+    if (existing) return existing.token;
+    let token = randomHex(EXT_TOKEN_BYTES);
+    // Collision is ~impossible; retry once anyway.
+    if (
+      await ctx.db
+        .query("extTokens")
+        .withIndex("by_token", (q) => q.eq("token", token))
+        .unique()
+    ) {
+      token = randomHex(EXT_TOKEN_BYTES);
+    }
+    await ctx.db.insert("extTokens", { token, userId: user._id, createdAt: Date.now() });
+    return token;
+  },
+});
+
+// Rotates (deletes + recreates) the caller's token.
+export const rotateExtToken = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await authComponent.getAuthUser(ctx);
+    if (!user) fail("You must be signed in.");
+    const existing = await ctx.db
+      .query("extTokens")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+    if (existing) await ctx.db.delete(existing._id);
+    const token = randomHex(EXT_TOKEN_BYTES);
+    await ctx.db.insert("extTokens", { token, userId: user._id, createdAt: Date.now() });
+    return token;
+  },
+});
+
+export const extTokenUserId = internalQuery({
+  args: { token: v.string() },
+  handler: async (ctx, { token }) => {
+    const doc = await ctx.db
+      .query("extTokens")
+      .withIndex("by_token", (q) => q.eq("token", token))
+      .unique();
+    return doc?.userId ?? null;
+  },
+});
+
+export const extSlugExists = internalQuery({
+  args: { slug: v.string() },
+  handler: async (ctx, { slug }) => {
+    const doc = await ctx.db
+      .query("links")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .unique();
+    return Boolean(doc);
+  },
+});
+
+export const extCountRecentLinks = internalQuery({
+  args: { userId: v.string(), since: v.number() },
+  handler: async (ctx, { userId, since }) => {
+    const recent = await ctx.db
+      .query("links")
+      .withIndex("by_owner", (q) => q.eq("ownerId", userId))
+      .collect();
+    return recent.filter((l) => l._creationTime > since).length;
+  },
+});
+
+export const extInsertLink = internalMutation({
+  args: {
+    ownerId: v.string(),
+    slug: v.string(),
+    url: v.string(),
+    title: v.string(),
+  },
+  handler: async (ctx, { ownerId, slug, url, title }) => {
+    const id = await ctx.db.insert("links", {
+      slug,
+      url,
+      title,
+      description: "No description provided.",
+      icon: "\u{1F517}",
+      ownerId,
+      clicks: 0,
+      public: false,
+      embedMode: "wlink",
+    });
+    return id;
+  },
+});
+
 export const removeLinkInternal = internalMutation({
   args: { id: v.id("links") },
   handler: async (ctx, { id }) => {

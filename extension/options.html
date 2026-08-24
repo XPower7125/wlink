@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>wlink extension — Settings</title>
+    <style>
+      body {
+        font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        max-width: 520px;
+        margin: 48px auto;
+        padding: 0 16px;
+      }
+      h1 { font-size: 22px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+      h1 span {
+        background: linear-gradient(90deg, #38bdf8, #2563eb);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      p.hint { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.5; }
+      label { display: block; font-size: 12px; font-weight: 600; color: #cbd5e1; margin: 14px 0 4px; }
+      input {
+        width: 100%;
+        border: 1px solid #1e293b;
+        background: #020617;
+        color: #e2e8f0;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 13px;
+        font-family: ui-monospace, monospace;
+      }
+      input:focus { outline: none; border-color: #38bdf8; }
+      button {
+        margin-top: 18px;
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-size: 14px;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(90deg, #0ea5e9, #2563eb);
+        cursor: pointer;
+      }
+      button:hover { filter: brightness(1.1); }
+      #status { margin-left: 12px; font-size: 13px; color: #4ade80; }
+      a { color: #38bdf8; }
+    </style>
+  </head>
+  <body>
+    <h1>w<span>link</span> extension settings</h1>
+    <p class="hint">
+      Get your token on the wlink site: <a href="https://wlink.vercel.app/my" target="_blank">My Links → Chrome extension → Create token</a>.
+      Paste it below. Only change the API fields if you self-host wlink.
+    </p>
+    <label for="token">Extension token</label>
+    <input id="token" type="password" placeholder="Paste your token" autocomplete="off" />
+    <label for="apiBase">API base (advanced)</label>
+    <input id="apiBase" type="text" autocomplete="off" />
+    <label for="siteOrigin">Site origin (advanced)</label>
+    <input id="siteOrigin" type="text" autocomplete="off" />
+    <button id="save">Save</button>
+    <span id="status"></span>
+    <script src="options.js"></script>
+  </body>
+</html>

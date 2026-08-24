@@ -60,4 +60,13 @@ export default defineSchema({
     isStaff: v.boolean(),
     updatedAt: v.number(),
   }).index("by_userId", ["userId"]),
+
+  // Chrome extension API tokens: one per user, Bearer-auth for /api/ext/*.
+  extTokens: defineTable({
+    token: v.string(),
+    userId: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("by_userId", ["userId"]),
 });

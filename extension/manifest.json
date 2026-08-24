@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "wlink — URL shortener",
+  "version": "1.0.0",
+  "description": "Shorten the current page with wlink straight from your toolbar.",
+  "permissions": ["activeTab", "storage", "clipboardWrite"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icon128.png"
+    }
+  },
+  "options_page": "options.html",
+  "icons": {
+    "128": "icon128.png"
+  }
+}
