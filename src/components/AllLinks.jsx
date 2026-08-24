@@ -72,7 +72,7 @@ export default function AllLinks() {
               return (
               <div
                 key={link._id}
-                className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-500/10 dark:border-white/10 dark:bg-slate-900/60 dark:hover:shadow-xl dark:hover:shadow-sky-500/10"
+                className={`group relative overflow-hidden rounded-2xl border bg-white transition hover:-translate-y-1 dark:bg-slate-900/60 ${isPinned(link) ? "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 hover:border-amber-400 hover:shadow-amber-500/30 dark:border-amber-400/40 dark:shadow-amber-400/15" : "border-slate-200 hover:border-sky-400/40 hover:shadow-lg hover:shadow-sky-500/10 dark:border-white/10 dark:hover:shadow-xl dark:hover:shadow-sky-500/10"}`}
               >
                 {isMod && (
                   adminConfirmId === link._id ? (
@@ -121,6 +121,7 @@ export default function AllLinks() {
                         className="truncate pr-16 font-semibold text-slate-900 dark:text-slate-100"
                         style={link.textColor ? { color: link.textColor } : undefined}
                       >
+                        {isPinned(link) ? "📌 " : ""}
                         {link.title}
                       </h3>
                       <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{link.description}</p>

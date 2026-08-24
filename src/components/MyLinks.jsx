@@ -348,7 +348,7 @@ export default function MyLinks() {
               ) : (
                 <div
                   key={link._id}
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-sky-400/40 dark:border-white/10 dark:bg-slate-900/60"
+                  className={`group relative overflow-hidden rounded-2xl border bg-white p-5 transition dark:bg-slate-900/60 ${isPinned(link) ? "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 hover:border-amber-400 dark:border-amber-400/40 dark:shadow-amber-400/15" : "border-slate-200 hover:border-sky-400/40 dark:border-white/10"}`}
                 >
                   <div className="flex items-start gap-4">
                     <span className="grid size-11 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/20 to-blue-600/20 text-xl ring-1 ring-slate-200 dark:ring-white/10">
@@ -359,6 +359,7 @@ export default function MyLinks() {
                         className="truncate font-semibold text-slate-900 dark:text-slate-100"
                         style={link.textColor ? { color: link.textColor } : undefined}
                       >
+                        {isPinned(link) ? "📌 " : ""}
                         {link.title}
                       </h3>
                       <p className="mt-1 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{link.description}</p>
@@ -483,7 +484,7 @@ export default function MyLinks() {
                 {allLinks.map((link) => (
                   <div
                     key={link._id}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900/60"
+                    className={`rounded-2xl border bg-white p-5 dark:bg-slate-900/60 ${isPinned(link) ? "border-amber-400 shadow-lg shadow-amber-500/25 ring-1 ring-amber-400/40 dark:border-amber-400/40 dark:shadow-amber-400/15" : "border-slate-200 dark:border-white/10"}`}
                   >
                     <div className="flex items-start gap-3">
                       <span className="grid size-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-sky-500/20 to-blue-600/20 text-lg ring-1 ring-slate-200 dark:ring-white/10">
@@ -491,6 +492,7 @@ export default function MyLinks() {
                       </span>
                       <div className="min-w-0">
                         <h4 className="truncate font-semibold text-slate-900 dark:text-slate-100" style={link.textColor ? { color: link.textColor } : undefined}>
+                          {isPinned(link) ? "📌 " : ""}
                           {link.title}
                         </h4>
                         <p className="truncate font-mono text-xs text-slate-400 dark:text-slate-500">/{link.slug}</p>
