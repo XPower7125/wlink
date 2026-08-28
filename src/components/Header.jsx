@@ -4,7 +4,12 @@ import { authClient, signInDiscord } from '../lib/auth-client'
 export default function Header() {
   const [dark, setDark] = useState(() => {
     try {
-      return localStorage.getItem('wlink:theme') !== 'light'
+      const v = localStorage.getItem('wlink:theme')
+      if (v === 'dark') return true
+      if (v === 'light') return false
+    } catch {}
+    try {
+      return !window.matchMedia('(prefers-color-scheme: light)').matches
     } catch {
       return true
     }
@@ -17,6 +22,16 @@ export default function Header() {
       localStorage.setItem('wlink:theme', dark ? 'dark' : 'light')
     } catch {}
   }, [dark])
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('wlink:theme') != null) return
+      const m = window.matchMedia('(prefers-color-scheme: light)')
+      const onChange = (e) => setDark(!e.matches)
+      m.addEventListener('change', onChange)
+      return () => m.removeEventListener('change', onChange)
+    } catch {}
+  }, [])
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-xl dark:border-white/5 dark:bg-[#0a0e17]/80">

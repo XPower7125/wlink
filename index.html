@@ -12,9 +12,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
       try {
-        if (localStorage.getItem('wlink:theme') === 'light') {
-          document.documentElement.classList.remove('dark')
-        }
+        var k = localStorage.getItem('wlink:theme');
+        if (k === 'light') document.documentElement.classList.remove('dark');
+        else if (k === 'dark') document.documentElement.classList.add('dark');
+        else if (window.matchMedia('(prefers-color-scheme: light)').matches) document.documentElement.classList.remove('dark');
+        else document.documentElement.classList.add('dark');
       } catch (e) {}
     </script>
     <title>wlink — The best URL shortener</title>
